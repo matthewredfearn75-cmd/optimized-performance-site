@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Footer() {
   return (
     <footer style={styles.footer}>
@@ -10,10 +12,9 @@ export default function Footer() {
           </p>
         </div>
         <div style={styles.right}>
-          <p style={styles.link}>Shop</p>
-          <p style={styles.link}>Contact</p>
-          <p style={styles.link}>Terms of Service</p>
-          <p style={styles.link}>Privacy Policy</p>
+          <Link href="/shop" style={styles.link}>Shop</Link>
+          <Link href="/privacy" style={styles.link}>Privacy Policy</Link>
+          <Link href="/terms" style={styles.link}>Terms of Service</Link>
         </div>
       </div>
       <div style={styles.bottom}>
