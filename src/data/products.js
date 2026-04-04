@@ -11,6 +11,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: 'HERO',
+    stock: 150,
   },
   {
     id: 'ret-20mg',
@@ -24,6 +25,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: 'HERO',
+    stock: 100,
   },
   {
     id: 'bpc-5mg',
@@ -37,6 +39,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 100,
   },
   {
     id: 'bpc-10mg',
@@ -50,6 +53,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 75,
   },
   {
     id: 'tb500-5mg',
@@ -63,6 +67,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 75,
   },
   {
     id: 'tb500-10mg',
@@ -76,6 +81,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 50,
   },
   {
     id: 'combo-70mg',
@@ -89,6 +95,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: 'BUNDLE',
+    stock: 40,
   },
   {
     id: 'ipa-5mg',
@@ -102,6 +109,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 75,
   },
   {
     id: 'hgh-10iu',
@@ -115,6 +123,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 50,
   },
   {
     id: 'mt2-5mg',
@@ -128,6 +137,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 75,
   },
   {
     id: 'nad-500mg',
@@ -141,6 +151,7 @@ const products = [
     vialSize: '2 mL Vial',
     inStock: true,
     badge: null,
+    stock: 50,
   },
 ];
 

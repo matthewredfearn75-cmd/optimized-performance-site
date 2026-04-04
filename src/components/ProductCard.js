@@ -1,7 +1,12 @@
 import { useCart } from '../context/CartContext';
 
-export default function ProductCard({ product }) {
+const LOW_STOCK_THRESHOLD = 20;
+
+export default function ProductCard({ product, qty }) {
   const { addToCart } = useCart();
+
+  const stock = qty ?? product.stock;
+  const status = stock === 0 ? 'out' : stock <= LOW_STOCK_THRESHOLD ? 'low' : 'in';
 
   const badgeColors = {
     HERO: { bg: '#00B4D8', color: '#fff' },
@@ -20,7 +25,6 @@ export default function ProductCard({ product }) {
         e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)';
       }}
     >
-      {/* Badge */}
       {product.badge && (
         <div style={{
           ...styles.badge,
@@ -31,7 +35,6 @@ export default function ProductCard({ product }) {
         </div>
       )}
 
-      {/* Vial illustration */}
       <div style={styles.imgWrap}>
         <svg viewBox="0 0 100 170" width="72" height="122" style={{ display: 'block', margin: '0 auto' }}>
           <rect x="32" y="4" width="36" height="16" rx="3" fill="#1B3A5C" />
@@ -51,7 +54,6 @@ export default function ProductCard({ product }) {
         <div style={styles.categoryTag}>{product.category}</div>
       </div>
 
-      {/* Info */}
       <div style={styles.info}>
         <div style={styles.nameRow}>
           <h3 style={styles.name}>{product.name}</h3>
@@ -66,19 +68,25 @@ export default function ProductCard({ product }) {
             <span style={styles.perVial}> / vial</span>
           </div>
           <button
-            style={styles.addBtn}
-            onClick={() => addToCart(product)}
-            onMouseEnter={(e) => { e.target.style.backgroundColor = '#0096B7'; }}
-            onMouseLeave={(e) => { e.target.style.backgroundColor = '#00B4D8'; }}
+            style={{ ...styles.addBtn, ...(status === 'out' ? styles.addBtnDisabled : {}) }}
+            onClick={() => status !== 'out' && addToCart(product)}
+            disabled={status === 'out'}
+            onMouseEnter={(e) => { if (status !== 'out') e.target.style.backgroundColor = '#0096B7'; }}
+            onMouseLeave={(e) => { if (status !== 'out') e.target.style.backgroundColor = '#00B4D8'; }}
           >
-            Add to Cart
+            {status === 'out' ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
 
         <div style={styles.stockRow}>
-          <span style={styles.stockDot} />
-          <span style={styles.stockText}>In Stock</span>
-          <span style={styles.shipping}>· Ships within 24hrs</span>
+          <span style={{
+            ...styles.stockDot,
+            backgroundColor: status === 'out' ? '#ef4444' : status === 'low' ? '#f59e0b' : '#22c55e',
+          }} />
+          {status === 'out' && <span style={{ ...styles.stockText, color: '#ef4444' }}>Out of Stock</span>}
+          {status === 'low' && <span style={{ ...styles.stockText, color: '#f59e0b' }}>Only {stock} left!</span>}
+          {status === 'in' && <span style={{ ...styles.stockText, color: '#22c55e' }}>In Stock</span>}
+          {status !== 'out' && <span style={styles.shipping}>· Ships within 24hrs</span>}
         </div>
       </div>
     </div>
@@ -98,132 +106,40 @@ const styles = {
     flexDirection: 'column',
   },
   badge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: 1.2,
-    padding: '3px 8px',
-    borderRadius: 4,
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    zIndex: 1,
+    position: 'absolute', top: 12, left: 12, fontSize: 10, fontWeight: 700,
+    letterSpacing: 1.2, padding: '3px 8px', borderRadius: 4,
+    fontFamily: "'Helvetica Neue', Arial, sans-serif", zIndex: 1,
   },
   imgWrap: {
-    backgroundColor: '#F4F9FC',
-    padding: '28px 16px 14px',
-    textAlign: 'center',
-    borderBottom: '1px solid #E4EDF3',
+    backgroundColor: '#F4F9FC', padding: '28px 16px 14px',
+    textAlign: 'center', borderBottom: '1px solid #E4EDF3',
   },
   categoryTag: {
-    display: 'inline-block',
-    marginTop: 10,
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: 1,
-    color: '#5A7D9A',
-    textTransform: 'uppercase',
+    display: 'inline-block', marginTop: 10, fontSize: 10, fontWeight: 600,
+    letterSpacing: 1, color: '#5A7D9A', textTransform: 'uppercase',
     fontFamily: "'Helvetica Neue', Arial, sans-serif",
   },
-  info: {
-    padding: '16px 18px 18px',
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  nameRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  name: {
-    margin: 0,
-    fontSize: 17,
-    fontWeight: 700,
-    color: '#0D1B2A',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    letterSpacing: 0.2,
-  },
+  info: { padding: '16px 18px 18px', flex: 1, display: 'flex', flexDirection: 'column' },
+  nameRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  name: { margin: 0, fontSize: 17, fontWeight: 700, color: '#0D1B2A', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
   dosagePill: {
-    flexShrink: 0,
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#00B4D8',
-    background: '#EBF8FC',
-    borderRadius: 20,
-    padding: '2px 9px',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    letterSpacing: 0.3,
-  },
-  sku: {
-    margin: '4px 0 8px',
-    fontSize: 11,
-    color: '#9AAAB8',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    letterSpacing: 0.3,
-  },
-  desc: {
-    margin: '0 0 14px',
-    fontSize: 12,
-    color: '#6B7B8D',
-    lineHeight: 1.55,
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    flex: 1,
-  },
-  bottom: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTop: '1px solid #F0F4F8',
-  },
-  price: {
-    fontSize: 22,
-    fontWeight: 700,
-    color: '#0D1B2A',
+    flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#00B4D8',
+    background: '#EBF8FC', borderRadius: 20, padding: '2px 9px',
     fontFamily: "'Helvetica Neue', Arial, sans-serif",
   },
-  perVial: {
-    fontSize: 12,
-    color: '#9AAAB8',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
+  sku: { margin: '4px 0 8px', fontSize: 11, color: '#9AAAB8', fontFamily: "'Helvetica Neue', Arial, sans-serif", letterSpacing: 0.3 },
+  desc: { margin: '0 0 14px', fontSize: 12, color: '#6B7B8D', lineHeight: 1.55, fontFamily: "'Helvetica Neue', Arial, sans-serif", flex: 1 },
+  bottom: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #F0F4F8' },
+  price: { fontSize: 22, fontWeight: 700, color: '#0D1B2A', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
+  perVial: { fontSize: 12, color: '#9AAAB8', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
   addBtn: {
-    backgroundColor: '#00B4D8',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    padding: '9px 18px',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    letterSpacing: 0.5,
-    transition: 'background-color 0.15s',
+    backgroundColor: '#00B4D8', color: '#fff', border: 'none', borderRadius: 8,
+    padding: '9px 18px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    fontFamily: "'Helvetica Neue', Arial, sans-serif", letterSpacing: 0.5, transition: 'background-color 0.15s',
   },
-  stockRow: {
-    display: 'flex',
-    alignItems: 'center',
-    marginTop: 10,
-    gap: 5,
-  },
-  stockDot: {
-    width: 7,
-    height: 7,
-    borderRadius: '50%',
-    backgroundColor: '#22C55E',
-    flexShrink: 0,
-  },
-  stockText: {
-    fontSize: 11,
-    color: '#22C55E',
-    fontWeight: 600,
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  shipping: {
-    fontSize: 11,
-    color: '#9AAAB8',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
+  addBtnDisabled: { backgroundColor: '#CBD5E1', cursor: 'not-allowed' },
+  stockRow: { display: 'flex', alignItems: 'center', marginTop: 10, gap: 5 },
+  stockDot: { width: 7, height: 7, borderRadius: '50%', flexShrink: 0 },
+  stockText: { fontSize: 11, fontWeight: 600, fontFamily: "'Helvetica Neue', Arial, sans-serif" },
+  shipping: { fontSize: 11, color: '#9AAAB8', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
 };
