@@ -1,11 +1,12 @@
-import { supabaseAdmin } from '@/lib/supabase'
-import { sendEmailAlert, sendSmsAlert } from '@/lib/alerts'
-import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabase'
+import { sendEmailAlert, sendSmsAlert } from '../../../lib/alerts'
 
-export async function GET(request) {
-  const authHeader = request.headers.get('authorization')
+export default async function handler(req, res) {
+  if (req.method !== 'GET') return res.status(405).end()
+
+  const authHeader = req.headers.authorization
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
   try {
@@ -18,7 +19,7 @@ export async function GET(request) {
     const lowItems = allItems.filter(item => item.stock <= item.threshold)
 
     if (lowItems.length === 0) {
-      return NextResponse.json({ message: 'All stock levels healthy', checked: new Date() })
+      return res.status(200).json({ message: 'All stock levels healthy', checked: new Date() })
     }
 
     await Promise.all([
@@ -26,12 +27,12 @@ export async function GET(request) {
       sendSmsAlert(lowItems),
     ])
 
-    return NextResponse.json({
+    return res.status(200).json({
       message: `Alerts sent for ${lowItems.length} low-stock SKU(s)`,
       items: lowItems,
     })
   } catch (err) {
     console.error('Stock check failed:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return res.status(500).json({ error: err.message })
   }
 }
