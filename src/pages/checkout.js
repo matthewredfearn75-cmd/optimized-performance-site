@@ -18,6 +18,8 @@ export default function Checkout() {
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   if (cartItems.length === 0 && !orderPlaced) {
@@ -42,6 +44,9 @@ export default function Checkout() {
           </svg>
         </div>
         <h1 style={styles.emptyTitle}>Payment Complete!</h1>
+        {orderNumber && (
+          <p style={styles.orderNum}>Order #{orderNumber}</p>
+        )}
         <p style={styles.emptyText}>
           Your order has been placed. You will receive a confirmation email shortly.
         </p>
@@ -52,13 +57,48 @@ export default function Checkout() {
     );
   }
 
-  const handleCheckout = (e) => {
+  const handleCheckout = async (e) => {
     e.preventDefault();
     if (!email || !name || !address || !city || !state || !zip) {
       alert('Please fill in all shipping fields.');
       return;
     }
-    setShowMoonPay(true);
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          address,
+          city,
+          state,
+          zip,
+          items: cartItems.map((item) => ({
+            id: item.id,
+            sku: item.sku,
+            name: item.name,
+            dosage: item.dosage,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          subtotal: cartTotal,
+          total: Math.ceil(cartTotal * 1.04 * 100) / 100,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create order');
+
+      setOrderNumber(data.order_number);
+      setShowMoonPay(true);
+    } catch (err) {
+      alert('Something went wrong creating your order. Please try again.');
+      console.error(err);
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -133,12 +173,12 @@ export default function Checkout() {
               </div>
             </div>
 
-            <button type="submit" style={styles.payBtn}>
+            <button type="submit" style={styles.payBtn} disabled={submitting}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 8 }}>
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                 <line x1="1" y1="10" x2="23" y2="10"/>
               </svg>
-              Pay ${cartTotal.toFixed(2)} with Card
+              {submitting ? 'Processing...' : `Pay $${cartTotal.toFixed(2)} with Card`}
             </button>
             <p style={styles.payNote}>
               Your card payment is securely converted to USDC via MoonPay.
@@ -185,6 +225,7 @@ export default function Checkout() {
         baseCurrencyCode="usd"
         baseCurrencyAmount={String(Math.ceil(cartTotal * 1.04))}
         defaultCurrencyCode="usdc_polygon"
+        externalTransactionId={orderNumber}
         visible={showMoonPay}
         onCloseOverlay={() => setShowMoonPay(false)}
         onTransactionCompleted={() => {
@@ -361,6 +402,14 @@ const styles = {
   },
   successIcon: {
     marginBottom: 24,
+  },
+  orderNum: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#00B4D8',
+    marginBottom: 8,
+    fontFamily: "'Helvetica Neue', Arial, sans-serif",
+    letterSpacing: 1,
   },
   emptyTitle: {
     fontSize: 24,
