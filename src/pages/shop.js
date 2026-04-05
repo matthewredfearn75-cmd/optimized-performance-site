@@ -18,11 +18,12 @@ export default function Shop({ inventory }) {
         <p style={styles.eyebrow}>Research Peptides</p>
         <h1 style={styles.title}>Optimized Performance Catalog</h1>
         <p style={styles.subtitle}>
-          98%+ purity · Third-party tested · Ships within 24 hours
+          99% pure · Third-party tested and ensured · Ships within 24 hours
         </p>
         <div style={styles.trustRow}>
-          <span style={styles.trustBadge}>✓ LCA Verified</span>
-          <span style={styles.trustBadge}>✓ Lowest Prices</span>
+          <span style={styles.trustBadge}>✓ 99% Purity</span>
+          <span style={styles.trustBadge}>✓ US Owned & Operated</span>
+          <span style={styles.trustBadge}>✓ Tested & Ensured</span>
           <span style={styles.trustBadge}>✓ Discrete Packaging</span>
         </div>
       </div>

@@ -46,8 +46,8 @@ export default function Home() {
           <h1 style={styles.heroTitle}>OPTIMIZED PERFORMANCE</h1>
           <p style={styles.heroSub}>Premium Research Peptides</p>
           <p style={styles.heroDesc}>
-            High-purity lyophilized peptides for research purposes.
-            Third-party tested. Fast shipping. Secure checkout.
+            99% pure lyophilized peptides for research purposes.
+            US owned and operated. Third-party tested and ensured. Fast shipping.
           </p>
           <Link href="/shop" style={styles.heroCta}>
             Browse Products
@@ -59,10 +59,17 @@ export default function Home() {
       <section style={styles.badges}>
         <div style={styles.badgesInner}>
           <div style={styles.badge}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
             <div>
-              <p style={styles.badgeTitle}>Third-Party Tested</p>
-              <p style={styles.badgeText}>Every batch verified for purity</p>
+              <p style={styles.badgeTitle}>99% Pure</p>
+              <p style={styles.badgeText}>Third-party tested and ensured</p>
+            </div>
+          </div>
+          <div style={styles.badge}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <div>
+              <p style={styles.badgeTitle}>US Owned & Operated</p>
+              <p style={styles.badgeText}>American company you can trust</p>
             </div>
           </div>
           <div style={styles.badge}>
