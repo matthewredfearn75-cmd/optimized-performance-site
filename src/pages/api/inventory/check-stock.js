@@ -12,24 +12,41 @@ export default async function handler(req, res) {
   try {
     const { data: allItems, error } = await supabaseAdmin
       .from('inventory')
-      .select('product, size, sku, stock, threshold')
+      .select('product, size, sku, stock, threshold, reorder_threshold')
 
     if (error) throw error
 
-    const lowItems = allItems.filter(item => item.stock <= item.threshold)
+    const criticalItems = allItems.filter(item => item.stock <= item.threshold)
+    const reorderItems = allItems.filter(
+      item => item.stock <= item.reorder_threshold && item.stock > item.threshold
+    )
 
-    if (lowItems.length === 0) {
+    if (criticalItems.length === 0 && reorderItems.length === 0) {
       return res.status(200).json({ message: 'All stock levels healthy', checked: new Date() })
     }
 
-    await Promise.all([
-      sendEmailAlert(lowItems),
-      sendSmsAlert(lowItems),
-    ])
+    const alerts = []
+
+    if (criticalItems.length > 0) {
+      alerts.push(
+        sendEmailAlert(criticalItems, 'critical'),
+        sendSmsAlert(criticalItems, 'critical'),
+      )
+    }
+
+    if (reorderItems.length > 0) {
+      alerts.push(
+        sendEmailAlert(reorderItems, 'reorder'),
+        sendSmsAlert(reorderItems, 'reorder'),
+      )
+    }
+
+    await Promise.all(alerts)
 
     return res.status(200).json({
-      message: `Alerts sent for ${lowItems.length} low-stock SKU(s)`,
-      items: lowItems,
+      message: `Alerts sent — ${criticalItems.length} critical, ${reorderItems.length} reorder`,
+      critical: criticalItems,
+      reorder: reorderItems,
     })
   } catch (err) {
     console.error('Stock check failed:', err)

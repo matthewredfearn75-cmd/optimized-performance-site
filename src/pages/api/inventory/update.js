@@ -63,11 +63,18 @@ export default async function handler(req, res) {
 
     if (updateError) throw updateError
 
+    let alertLevel = null
     if (newStock <= item.threshold) {
+      alertLevel = 'critical'
+    } else if (newStock <= item.reorder_threshold) {
+      alertLevel = 'reorder'
+    }
+
+    if (alertLevel) {
       const alertItem = { ...item, stock: newStock }
       await Promise.all([
-        sendEmailAlert([alertItem]),
-        sendSmsAlert([alertItem]),
+        sendEmailAlert([alertItem], alertLevel),
+        sendSmsAlert([alertItem], alertLevel),
       ])
     }
 
@@ -75,8 +82,9 @@ export default async function handler(req, res) {
       sku,
       previous_stock: item.stock,
       new_stock: newStock,
+      reorder_threshold: item.reorder_threshold,
       threshold: item.threshold,
-      alert_sent: newStock <= item.threshold,
+      alert_level: alertLevel,
     })
   } catch (err) {
     console.error('Inventory update failed:', err)
