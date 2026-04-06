@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import products from '../../data/products';
 
 const LOW_STOCK_THRESHOLD = 20;
+const LOTS_STORAGE_KEY = 'op_supply_lots';
+
+function generateLotNumber(productId) {
+  const prefix = productId.replace(/-/g, '').toUpperCase().slice(0, 4);
+  const date = new Date();
+  const dateStr = `${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${String(date.getFullYear()).slice(2)}`;
+  const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+  return `${prefix}-${dateStr}-${seq}`;
+}
 
 export default function AdminInventory() {
   const [authed, setAuthed] = useState(false);
@@ -11,13 +20,31 @@ export default function AdminInventory() {
   const [edits, setEdits] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [activeTab, setActiveTab] = useState('inventory');
+  const [lots, setLots] = useState([]);
+  const [showLotForm, setShowLotForm] = useState(false);
+  const [editingLotId, setEditingLotId] = useState(null);
+  const [lotForm, setLotForm] = useState({
+    product: products[0]?.id || '',
+    lotNumber: '',
+    supplierLot: '',
+    dateReceived: new Date().toISOString().split('T')[0],
+    qtyVials: '',
+    qtyRemaining: '',
+    coaOnFile: false,
+    notes: '',
+  });
 
   useEffect(() => {
     if (sessionStorage.getItem('op_admin') === '1') setAuthed(true);
   }, []);
 
   useEffect(() => {
-    if (authed) fetchInventory();
+    if (authed) {
+      fetchInventory();
+      const savedLots = localStorage.getItem(LOTS_STORAGE_KEY);
+      if (savedLots) setLots(JSON.parse(savedLots));
+    }
   }, [authed]);
 
   async function fetchInventory() {
@@ -72,6 +99,75 @@ export default function AdminInventory() {
     setAuthed(false);
   }
 
+  // Supply tracker helpers
+  function saveLots(updated) {
+    setLots(updated);
+    if (updated.length > 0) {
+      localStorage.setItem(LOTS_STORAGE_KEY, JSON.stringify(updated));
+    } else {
+      localStorage.removeItem(LOTS_STORAGE_KEY);
+    }
+  }
+
+  function resetLotForm() {
+    setLotForm({
+      product: products[0]?.id || '',
+      lotNumber: '',
+      supplierLot: '',
+      dateReceived: new Date().toISOString().split('T')[0],
+      qtyVials: '',
+      qtyRemaining: '',
+      coaOnFile: false,
+      notes: '',
+    });
+    setEditingLotId(null);
+  }
+
+  function handleLotSubmit(e) {
+    e.preventDefault();
+    const entry = {
+      ...lotForm,
+      id: editingLotId || Date.now().toString(),
+      qtyVials: parseInt(lotForm.qtyVials) || 0,
+      qtyRemaining: parseInt(lotForm.qtyRemaining) || parseInt(lotForm.qtyVials) || 0,
+    };
+    if (editingLotId) {
+      saveLots(lots.map((l) => (l.id === editingLotId ? entry : l)));
+    } else {
+      saveLots([entry, ...lots]);
+    }
+    resetLotForm();
+    setShowLotForm(false);
+  }
+
+  function handleLotEdit(lot) {
+    setLotForm({
+      product: lot.product,
+      lotNumber: lot.lotNumber,
+      supplierLot: lot.supplierLot,
+      dateReceived: lot.dateReceived,
+      qtyVials: String(lot.qtyVials),
+      qtyRemaining: String(lot.qtyRemaining),
+      coaOnFile: lot.coaOnFile,
+      notes: lot.notes,
+    });
+    setEditingLotId(lot.id);
+    setShowLotForm(true);
+  }
+
+  function handleLotDelete(id) {
+    if (window.confirm('Delete this lot entry?')) {
+      saveLots(lots.filter((l) => l.id !== id));
+    }
+  }
+
+  function getProductName(id) {
+    const p = products.find((p) => p.id === id);
+    return p ? p.name : id;
+  }
+
+  const totalLotVials = lots.reduce((sum, l) => sum + (l.qtyRemaining || 0), 0);
+
   const totalUnits = Object.values(edits).reduce((a, b) => a + b, 0);
   const totalValue = products.reduce((sum, p) => sum + (edits[p.id] ?? p.stock) * p.price, 0);
   const lowStockItems = products.filter((p) => (edits[p.id] ?? p.stock) > 0 && (edits[p.id] ?? p.stock) <= LOW_STOCK_THRESHOLD);
@@ -125,6 +221,178 @@ export default function AdminInventory() {
       </div>
 
       <div style={styles.content}>
+        {/* Tab navigation */}
+        <div style={styles.tabRow}>
+          <button
+            style={{ ...styles.tab, ...(activeTab === 'inventory' ? styles.tabActive : {}) }}
+            onClick={() => setActiveTab('inventory')}
+          >
+            Inventory
+          </button>
+          <button
+            style={{ ...styles.tab, ...(activeTab === 'supply' ? styles.tabActive : {}) }}
+            onClick={() => setActiveTab('supply')}
+          >
+            Supply Tracker
+          </button>
+        </div>
+
+        {activeTab === 'supply' && (
+          <>
+            {/* Supply tracker header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0D1B2A', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>Lot Tracking</h2>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9AAAB8', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>Track supplier lots, COAs, and vial inventory</p>
+              </div>
+              <button
+                style={styles.saveBtn}
+                onClick={() => { resetLotForm(); setShowLotForm(!showLotForm); }}
+              >
+                {showLotForm ? 'Cancel' : '+ New Lot'}
+              </button>
+            </div>
+
+            {/* Supply stats */}
+            <div style={styles.statsRow}>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{lots.length}</div>
+                <div style={styles.statLabel}>Total Lots</div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{totalLotVials}</div>
+                <div style={styles.statLabel}>Vials Remaining</div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{lots.filter((l) => l.coaOnFile).length}</div>
+                <div style={styles.statLabel}>COAs on File</div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{new Set(lots.map((l) => l.product)).size}</div>
+                <div style={styles.statLabel}>Products Tracked</div>
+              </div>
+            </div>
+
+            {/* Lot form */}
+            {showLotForm && (
+              <div style={{ ...styles.tableWrap, padding: 24, marginBottom: 20 }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600, color: '#0D1B2A', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+                  {editingLotId ? 'Edit Lot' : 'Add New Lot'}
+                </h3>
+                <form onSubmit={handleLotSubmit}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 16 }}>
+                    <div>
+                      <label style={styles.lotLabel}>Product</label>
+                      <select style={styles.lotInput} value={lotForm.product} onChange={(e) => setLotForm({ ...lotForm, product: e.target.value })}>
+                        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        <option value="glp-3">GLP-3</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Your Lot #</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input style={{ ...styles.lotInput, flex: 1 }} value={lotForm.lotNumber} onChange={(e) => setLotForm({ ...lotForm, lotNumber: e.target.value })} placeholder="e.g. GLP3-040626-001" required />
+                        <button type="button" style={{ ...styles.logoutBtn, color: '#0D1B2A', borderColor: '#E4EDF3', fontSize: 11, padding: '6px 10px' }} onClick={() => setLotForm({ ...lotForm, lotNumber: generateLotNumber(lotForm.product) })}>Auto</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Supplier Lot #</label>
+                      <input style={styles.lotInput} value={lotForm.supplierLot} onChange={(e) => setLotForm({ ...lotForm, supplierLot: e.target.value })} placeholder="From supplier COA" required />
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Date Received</label>
+                      <input type="date" style={styles.lotInput} value={lotForm.dateReceived} onChange={(e) => setLotForm({ ...lotForm, dateReceived: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Qty Vials (Total)</label>
+                      <input type="number" style={styles.lotInput} value={lotForm.qtyVials} onChange={(e) => setLotForm({ ...lotForm, qtyVials: e.target.value, qtyRemaining: lotForm.qtyRemaining || e.target.value })} min="0" required />
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Qty Remaining</label>
+                      <input type="number" style={styles.lotInput} value={lotForm.qtyRemaining} onChange={(e) => setLotForm({ ...lotForm, qtyRemaining: e.target.value })} min="0" required />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20 }}>
+                      <label style={{ ...styles.lotLabel, margin: 0, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={lotForm.coaOnFile} onChange={(e) => setLotForm({ ...lotForm, coaOnFile: e.target.checked })} style={{ marginRight: 8 }} />
+                        COA on File
+                      </label>
+                    </div>
+                    <div>
+                      <label style={styles.lotLabel}>Notes</label>
+                      <input style={styles.lotInput} value={lotForm.notes} onChange={(e) => setLotForm({ ...lotForm, notes: e.target.value })} placeholder="Optional" />
+                    </div>
+                  </div>
+                  <button type="submit" style={styles.saveBtn}>{editingLotId ? 'Update Lot' : 'Add Lot'}</button>
+                </form>
+              </div>
+            )}
+
+            {/* Lot table */}
+            <div style={styles.tableWrap}>
+              {lots.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                  <p style={{ fontSize: 15, color: '#5A7D9A', margin: 0 }}>No lots tracked yet</p>
+                  <p style={{ fontSize: 12, color: '#9AAAB8', marginTop: 4 }}>Click "+ New Lot" to add your first supply entry</p>
+                </div>
+              ) : (
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={styles.thead}>
+                      <th style={styles.th}>Product</th>
+                      <th style={styles.th}>Your Lot #</th>
+                      <th style={styles.th}>Supplier Lot</th>
+                      <th style={styles.th}>Received</th>
+                      <th style={{ ...styles.th, textAlign: 'center' }}>Total</th>
+                      <th style={{ ...styles.th, textAlign: 'center' }}>Remaining</th>
+                      <th style={{ ...styles.th, textAlign: 'center' }}>COA</th>
+                      <th style={styles.th}>Notes</th>
+                      <th style={styles.th}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lots.map((lot, i) => {
+                      const lowStock = lot.qtyRemaining <= Math.ceil(lot.qtyVials * 0.2);
+                      return (
+                        <tr key={lot.id} style={{ ...styles.tr, backgroundColor: i % 2 === 0 ? '#fff' : '#F9FBFC' }}>
+                          <td style={styles.td}>
+                            <span style={styles.categoryChip}>{getProductName(lot.product)}</span>
+                          </td>
+                          <td style={{ ...styles.td, ...styles.mono, fontWeight: 600 }}>{lot.lotNumber}</td>
+                          <td style={{ ...styles.td, ...styles.mono }}>{lot.supplierLot}</td>
+                          <td style={styles.td}>{lot.dateReceived}</td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>{lot.qtyVials}</td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor: lowStock ? '#fef3c7' : '#dcfce7',
+                              color: lowStock ? '#d97706' : '#16a34a',
+                            }}>
+                              {lot.qtyRemaining}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <span style={{ color: lot.coaOnFile ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                              {lot.coaOnFile ? 'Yes' : 'No'}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, color: '#6B7B8D', fontSize: 12 }}>{lot.notes || '-'}</td>
+                          <td style={styles.td}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button style={{ ...styles.lotActionBtn }} onClick={() => handleLotEdit(lot)}>Edit</button>
+                              <button style={{ ...styles.lotActionBtn, color: '#dc2626' }} onClick={() => handleLotDelete(lot.id)}>Del</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'inventory' && (<>
         {/* Stats row */}
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
@@ -239,6 +507,7 @@ export default function AdminInventory() {
         <p style={styles.note}>
           Changes are saved to persistent storage (Upstash Redis). Set <code>ADMIN_PASSWORD</code> in Vercel environment variables to change the login password.
         </p>
+        </>)}
       </div>
     </div>
   );
@@ -409,4 +678,59 @@ const styles = {
   },
   tfootRow: { backgroundColor: '#F4F9FC', borderTop: '2px solid #E4EDF3' },
   note: { marginTop: 16, fontSize: 12, color: '#9AAAB8', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
+  tabRow: {
+    display: 'flex',
+    gap: 4,
+    marginBottom: 24,
+    borderBottom: '2px solid #E4EDF3',
+  },
+  tab: {
+    padding: '10px 20px',
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: "'Helvetica Neue', Arial, sans-serif",
+    color: '#9AAAB8',
+    background: 'none',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    marginBottom: -2,
+    cursor: 'pointer',
+    letterSpacing: 0.3,
+  },
+  tabActive: {
+    color: '#00B4D8',
+    borderBottomColor: '#00B4D8',
+  },
+  lotLabel: {
+    display: 'block',
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#9AAAB8',
+    marginBottom: 4,
+    fontFamily: "'Helvetica Neue', Arial, sans-serif",
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  lotInput: {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: 6,
+    border: '1px solid #E4EDF3',
+    fontSize: 13,
+    fontFamily: "'Helvetica Neue', Arial, sans-serif",
+    color: '#0D1B2A',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  lotActionBtn: {
+    background: 'none',
+    border: '1px solid #E4EDF3',
+    borderRadius: 5,
+    padding: '4px 10px',
+    fontSize: 11,
+    cursor: 'pointer',
+    color: '#0077B6',
+    fontFamily: "'Helvetica Neue', Arial, sans-serif",
+    fontWeight: 500,
+  },
 };
