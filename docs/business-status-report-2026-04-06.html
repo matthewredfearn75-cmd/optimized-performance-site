@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimized Performance — Business Status Report | April 6, 2026</title>
+<style>
+  @page { size: letter; margin: 0.75in; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page-break { page-break-before: always; } }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0D1B2A; line-height: 1.6; background: #fff; max-width: 8.5in; margin: 0 auto; padding: 0.75in; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00B4D8; padding-bottom: 16px; margin-bottom: 32px; }
+  .header-left h1 { font-size: 24px; font-weight: 800; color: #0D1B2A; letter-spacing: 1px; }
+  .header-left h1 span { color: #00B4D8; }
+  .header-left p { font-size: 11px; color: #5A7D9A; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .header-right { text-align: right; font-size: 12px; color: #5A7D9A; }
+  .header-right .doc-type { font-size: 14px; font-weight: 700; color: #0D1B2A; }
+  .confidential { display: inline-block; background: #0D1B2A; color: #00B4D8; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; padding: 3px 10px; border-radius: 3px; margin-top: 6px; }
+
+  /* Sections */
+  h2 { font-size: 16px; font-weight: 700; color: #0D1B2A; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #E4EDF3; padding-bottom: 6px; margin: 28px 0 14px; }
+  h2:first-of-type { margin-top: 0; }
+  h3 { font-size: 13px; font-weight: 700; color: #0077B6; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  p, li { font-size: 12px; line-height: 1.7; }
+  ul { padding-left: 18px; margin: 6px 0; }
+  li { margin-bottom: 4px; }
+
+  /* Summary box */
+  .summary-box { background: #F4F9FC; border: 1px solid #E4EDF3; border-left: 4px solid #00B4D8; border-radius: 6px; padding: 16px 20px; margin-bottom: 20px; }
+  .summary-box p { font-size: 13px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 11px; }
+  th { background: #0D1B2A; color: #fff; text-align: left; padding: 8px 12px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; }
+  td { padding: 7px 12px; border-bottom: 1px solid #E4EDF3; }
+  tr:nth-child(even) td { background: #F9FBFC; }
+
+  /* Status indicators */
+  .status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-done { background: #dcfce7; color: #16a34a; }
+  .status-progress { background: #dbeafe; color: #1e40af; }
+  .status-todo { background: #fef3c7; color: #92400e; }
+  .status-blocked { background: #fee2e2; color: #dc2626; }
+
+  /* Two column */
+  .two-col { display: flex; gap: 24px; }
+  .two-col > div { flex: 1; }
+
+  /* Footer */
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #E4EDF3; font-size: 10px; color: #9AAAB8; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>OPTIMIZED <span>PERFORMANCE</span></h1>
+    <p>Research Peptide Supply</p>
+  </div>
+  <div class="header-right">
+    <div class="doc-type">Business Status Report</div>
+    <div>April 6, 2026</div>
+    <div>Target Launch: May 19, 2026</div>
+    <div class="confidential">CONFIDENTIAL — INTERNAL USE ONLY</div>
+  </div>
+</div>
+
+<div class="summary-box">
+  <p><strong>Executive Summary:</strong> Optimized Performance is a direct-to-consumer research peptide company. The e-commerce platform is built on Next.js 14 / React 18, deployed on Vercel, with MoonPay cryptocurrency payment processing (fiat → USDC on Polygon). The website, admin dashboard, product catalog, and payment rail are functional. Key remaining work includes environment configuration, supplier sourcing, MoonPay KYB verification, and legal review before the May 19 launch.</p>
+</div>
+
+<h2>1. Platform Architecture</h2>
+
+<div class="two-col">
+  <div>
+    <h3>Tech Stack</h3>
+    <ul>
+      <li><strong>Framework:</strong> Next.js 14.2 + React 18.3</li>
+      <li><strong>Hosting:</strong> Vercel (auto-deploy from GitHub)</li>
+      <li><strong>Payment:</strong> MoonPay (fiat → USDC/Polygon)</li>
+      <li><strong>Database:</strong> Supabase (PostgreSQL) — configured, not yet provisioned</li>
+      <li><strong>Cache/Store:</strong> Upstash Redis — referenced, not yet provisioned</li>
+      <li><strong>Alerts:</strong> SendGrid (email) + Twilio (SMS) — modules built, not configured</li>
+      <li><strong>Styling:</strong> CSS-in-JS inline (no framework)</li>
+      <li><strong>Repo:</strong> GitHub — matthewredfearn75-cmd/optimized-performance-site</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Pages & Routes</h3>
+    <ul>
+      <li><strong>/</strong> — Landing page with hero, featured products, trust badges</li>
+      <li><strong>/shop</strong> — Full product catalog grid</li>
+      <li><strong>/checkout</strong> — Shipping form + MoonPay payment overlay</li>
+      <li><strong>/admin</strong> — Password-protected admin dashboard</li>
+      <li><strong>/privacy</strong> — Privacy policy</li>
+      <li><strong>/terms</strong> — Terms of service + RUO disclaimer</li>
+      <li><strong>/api/*</strong> — Inventory, orders, webhooks endpoints</li>
+    </ul>
+  </div>
+</div>
+
+<h2>2. Product Catalog</h2>
+
+<table>
+  <tr>
+    <th>Product</th>
+    <th>Dosage</th>
+    <th>Format</th>
+    <th>Price</th>
+    <th>Vial Label</th>
+    <th>In Catalog</th>
+  </tr>
+  <tr>
+    <td><strong>BPC-157</strong> — Body Protection Compound</td>
+    <td>5 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$39.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>TB-500</strong> — Thymosin Beta-4 Fragment</td>
+    <td>5 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$34.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>PT-141</strong> — Bremelanotide</td>
+    <td>10 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$44.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>CJC-1295</strong> — Mod GRF (No DAC)</td>
+    <td>5 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$42.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>Ipamorelin</strong> — GH Secretagogue</td>
+    <td>5 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$36.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>GHRP-2</strong> — GH Releasing Peptide-2</td>
+    <td>5 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>$29.99</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-done">Yes</span></td>
+  </tr>
+  <tr>
+    <td><strong>GLP-3</strong> — Triple Agonist Peptide (retatrutide)</td>
+    <td>10 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>TBD</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-todo">Not yet</span></td>
+  </tr>
+  <tr>
+    <td><strong>GLP-3</strong> — Triple Agonist Peptide (retatrutide)</td>
+    <td>20 mg</td>
+    <td>Lyophilized / 2 mL vial</td>
+    <td>TBD</td>
+    <td><span class="status status-done">Ready</span></td>
+    <td><span class="status status-todo">Not yet</span></td>
+  </tr>
+</table>
+
+<p><strong>Note:</strong> GLP-3 is branded to avoid Eli Lilly trademark issues. Both 10 mg and 20 mg labels are created and ready for thermal printing (0.5" x 1.5" metallic labels). GLP-3 still needs to be added to <code>products.js</code> with pricing and added to the shop page.</p>
+
+<h2>3. Admin Dashboard</h2>
+
+<p>Accessible at <strong>/admin</strong> — password-protected (default: <code>optimized2024</code>, configurable via <code>ADMIN_PASSWORD</code> env var).</p>
+
+<table>
+  <tr>
+    <th>Tab</th>
+    <th>Features</th>
+    <th>Status</th>
+  </tr>
+  <tr>
+    <td><strong>Orders</strong></td>
+    <td>Status pipeline (Pending → Packed → Shipped → Fulfilled), create orders, expandable detail view, tracking # entry, CSV export, auto-decrements supply on fulfillment</td>
+    <td><span class="status status-done">Built</span></td>
+  </tr>
+  <tr>
+    <td><strong>Inventory</strong></td>
+    <td>Editable stock quantities per SKU, total value calculation, low/out-of-stock alerts, saves to Supabase</td>
+    <td><span class="status status-done">Built</span></td>
+  </tr>
+  <tr>
+    <td><strong>Supply Tracker</strong></td>
+    <td>Lot number management (auto-generate or manual), supplier lot tracking, COA status, vial counts, date received</td>
+    <td><span class="status status-done">Built</span></td>
+  </tr>
+</table>
+
+<p><strong>Architecture note:</strong> The admin page was refactored from a single 737-line file into 4 focused component files for maintainability. Each tab is its own component (~180–430 lines).</p>
+
+<div class="page-break"></div>
+
+<h2>4. Payment Infrastructure</h2>
+
+<div class="summary-box">
+  <p><strong>Payment Flow:</strong> Customer pays with credit/debit card → MoonPay converts fiat to USDC (stablecoin on Polygon blockchain) → ~4% processing fee → funds arrive in configured wallet. MoonPay handles KYC for customers automatically.</p>
+</div>
+
+<ul>
+  <li><strong>SDK:</strong> @moonpay/moonpay-react v1.10.6 — integrated as overlay widget in checkout</li>
+  <li><strong>Webhook:</strong> <code>/api/webhooks/moonpay</code> — verifies HMAC signature, updates order to "completed", decrements inventory, sends confirmation email</li>
+  <li><strong>Current state:</strong> Using test/placeholder API key — needs production key + KYB verification with MoonPay</li>
+  <li><strong>Off-ramp:</strong> USDC → fiat conversion and bank withdrawal setup still needed</li>
+</ul>
+
+<h2>5. Vial Labels</h2>
+
+<p>All labels are designed, generated, and stored in the <code>labels/</code> directory. Each label is available as both SVG (source) and JPEG (300 DPI, 1875x625px) for thermal printer use.</p>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>Product</th>
+    <th>Dosage</th>
+    <th>Dimensions</th>
+  </tr>
+  <tr><td>bpc-157-vial-label.jpg</td><td>BPC-157</td><td>5 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>tb-500-vial-label.jpg</td><td>TB-500</td><td>5 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>pt-141-vial-label.jpg</td><td>PT-141</td><td>10 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>cjc-1295-vial-label.jpg</td><td>CJC-1295</td><td>5 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>ipamorelin-vial-label.jpg</td><td>Ipamorelin</td><td>5 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>ghrp-2-vial-label.jpg</td><td>GHRP-2</td><td>5 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>glp-3-vial-label.jpg</td><td>GLP-3</td><td>10 mg</td><td>0.5" x 1.5"</td></tr>
+  <tr><td>glp-3-20mg-vial-label.jpg</td><td>GLP-3</td><td>20 mg</td><td>0.5" x 1.5"</td></tr>
+</table>
+
+<p>A generator script (<code>labels/generate-all-labels.js</code>) is included to create new labels for future products.</p>
+
+<h2>6. Branding</h2>
+
+<div class="two-col">
+  <div>
+    <h3>Visual Identity</h3>
+    <ul>
+      <li><strong>Logo:</strong> Hexagonal mandala SVG (geometric, scientific feel)</li>
+      <li><strong>Primary dark:</strong> #0D1B2A (navy)</li>
+      <li><strong>Primary accent:</strong> #00B4D8 (cyan)</li>
+      <li><strong>Secondary accent:</strong> #0077B6 (darker cyan)</li>
+      <li><strong>Typography:</strong> Helvetica Neue / Arial (system fonts)</li>
+      <li><strong>Design approach:</strong> Minimalist, clean, card-based layouts</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Brand Positioning</h3>
+    <ul>
+      <li>Research-grade peptides for scientific use</li>
+      <li>Emphasis on purity (>98%), third-party testing</li>
+      <li>"For Research Use Only" disclaimer throughout</li>
+      <li>Trust signals: purity badges, secure checkout, fast shipping</li>
+      <li>Crypto-native payment (appeals to privacy-conscious buyers)</li>
+    </ul>
+  </div>
+</div>
+
+<h2>7. What's Done vs. What's Remaining</h2>
+
+<table>
+  <tr>
+    <th>Area</th>
+    <th>Item</th>
+    <th>Status</th>
+  </tr>
+  <tr><td>Website</td><td>Home, Shop, Checkout pages</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Website</td><td>Privacy Policy + Terms of Service</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Website</td><td>Mobile responsiveness testing</td><td><span class="status status-todo">Needs testing</span></td></tr>
+  <tr><td>Website</td><td>SEO meta tags + OG images</td><td><span class="status status-todo">Not started</span></td></tr>
+  <tr><td>Admin</td><td>Orders, Inventory, Supply Tracker tabs</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Payment</td><td>MoonPay SDK integration</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Payment</td><td>MoonPay KYB verification (production)</td><td><span class="status status-blocked">Not started</span></td></tr>
+  <tr><td>Payment</td><td>Wallet + off-ramp to bank</td><td><span class="status status-todo">Not started</span></td></tr>
+  <tr><td>Infra</td><td>Vercel deployment pipeline</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Infra</td><td>Supabase database provisioning</td><td><span class="status status-blocked">Not started</span></td></tr>
+  <tr><td>Infra</td><td>Environment variables configured</td><td><span class="status status-blocked">Not started</span></td></tr>
+  <tr><td>Infra</td><td>Custom domain + DNS</td><td><span class="status status-todo">Not started</span></td></tr>
+  <tr><td>Infra</td><td>Email alerts (SendGrid)</td><td><span class="status status-todo">Code ready, not configured</span></td></tr>
+  <tr><td>Products</td><td>6 peptides in catalog</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Products</td><td>GLP-3 added to catalog</td><td><span class="status status-todo">Labels ready, not in products.js</span></td></tr>
+  <tr><td>Products</td><td>SKU + stock fields on products</td><td><span class="status status-todo">Missing from data</span></td></tr>
+  <tr><td>Products</td><td>All 8 vial labels</td><td><span class="status status-done">Done</span></td></tr>
+  <tr><td>Operations</td><td>Supplier sourced</td><td><span class="status status-blocked">Unknown</span></td></tr>
+  <tr><td>Operations</td><td>Shipping carrier setup</td><td><span class="status status-todo">Not started</span></td></tr>
+  <tr><td>Operations</td><td>Lot numbering system</td><td><span class="status status-done">Built into admin</span></td></tr>
+  <tr><td>Legal</td><td>Business entity (LLC)</td><td><span class="status status-todo">Unknown</span></td></tr>
+  <tr><td>Legal</td><td>Legal review of Terms/Privacy</td><td><span class="status status-todo">Not started</span></td></tr>
+</table>
+
+<h2>8. Repository Structure</h2>
+
+<table>
+  <tr><th>Path</th><th>Purpose</th><th>Lines</th></tr>
+  <tr><td>src/pages/index.js</td><td>Home / landing page</td><td>263</td></tr>
+  <tr><td>src/pages/shop.js</td><td>Product catalog</td><td>149</td></tr>
+  <tr><td>src/pages/checkout.js</td><td>Checkout + MoonPay</td><td>438</td></tr>
+  <tr><td>src/pages/admin/index.js</td><td>Admin shell + auth</td><td>231</td></tr>
+  <tr><td>src/pages/admin/OrdersTab.js</td><td>Order management</td><td>427</td></tr>
+  <tr><td>src/pages/admin/InventoryTab.js</td><td>Stock management</td><td>180</td></tr>
+  <tr><td>src/pages/admin/SupplyTab.js</td><td>Lot tracking</td><td>235</td></tr>
+  <tr><td>src/components/</td><td>Header, Footer, CartDrawer, ProductCard</td><td>686 total</td></tr>
+  <tr><td>src/lib/</td><td>supabase.js, alerts.js, inventory.js</td><td>188 total</td></tr>
+  <tr><td>src/data/products.js</td><td>Product catalog data</td><td>158</td></tr>
+  <tr><td>labels/</td><td>8 SVG + 8 JPEG vial labels + generator</td><td>—</td></tr>
+  <tr><td colspan="2"><strong>Total source code</strong></td><td><strong>~3,990</strong></td></tr>
+</table>
+
+<h2>9. Git History Summary</h2>
+
+<p>The repository has been developed across 2 branches:</p>
+<ul>
+  <li><strong>master</strong> — Production base: initial site, MoonPay integration, admin panel, API routes, legal pages, Supabase/Redis/alerts infrastructure</li>
+  <li><strong>claude/review-peptide-website-pxuxm</strong> — Current working branch: supply tracker, orders tab, vial labels, admin refactor, build fixes</li>
+</ul>
+<p>PR #1 is open for merging the working branch into master. CI checks passing (Vercel Preview + GitGuardian).</p>
+
+<div class="footer">
+  <div>Optimized Performance Inc. — Business Status Report</div>
+  <div>Generated April 6, 2026 — Page 1 of 1</div>
+  <div>CONFIDENTIAL</div>
+</div>
+
+</body>
+</html>
