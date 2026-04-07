@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   if (!rateLimit(req, { maxRequests: 10, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
 
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Database not configured — check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars' })
+    }
+
     const { name, email, address, city, state, zip, items, subtotal, total, discount, affiliateCode, affiliateCommissionPct } = req.body
 
     if (!validateString(name) || !validateEmail(email) || !validateString(address) ||
