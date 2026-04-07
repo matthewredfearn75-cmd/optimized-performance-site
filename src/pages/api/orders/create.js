@@ -65,6 +65,6 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('Order creation failed:', err)
-    return res.status(500).json({ error: err.message })
+    return res.status(500).json({ error: err.message, details: err.details || null, hint: err.hint || null })
   }
 }
