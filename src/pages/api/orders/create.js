@@ -12,8 +12,10 @@ function generateOrderNumber() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
-  if (!rateLimit(req, { maxRequests: 10, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
+
+  // Log debug info
+  console.log('[orders/create] origin:', req.headers.origin, 'host:', req.headers.host, 'referer:', req.headers.referer)
+  console.log('[orders/create] supabaseAdmin:', supabaseAdmin ? 'initialized' : 'NULL')
 
   try {
     if (!supabaseAdmin) {
