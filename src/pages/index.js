@@ -1,12 +1,17 @@
 import Link from 'next/link';
 import ProductCard from '../components/ProductCard';
 import products from '../data/products';
+import SEO from '../components/SEO';
 
 export default function Home() {
   const featured = products.slice(0, 3);
 
   return (
     <div>
+      <SEO
+        path="/"
+        description="Optimized Performance — research-grade peptides with 99% purity. BPC-157, TB-500, GLP-3, Ipamorelin, and more. Third-party tested, US owned & operated. Fast shipping."
+      />
       {/* Hero Section */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>

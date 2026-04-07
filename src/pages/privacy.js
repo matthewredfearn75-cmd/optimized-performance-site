@@ -1,3 +1,5 @@
+import SEO from '../components/SEO';
+
 export default function PrivacyPolicy() {
   const lastUpdated = 'April 3, 2025';
   const companyName = 'Optimized Performance Inc.';
@@ -6,6 +8,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div style={styles.page}>
+      <SEO title="Privacy Policy" description="Optimized Performance privacy policy — how we collect, use, and protect your data." path="/privacy" />
       <div style={styles.headerBanner}>
         <p style={styles.eyebrow}>Legal</p>
         <h1 style={styles.title}>Privacy Policy</h1>

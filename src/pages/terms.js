@@ -1,3 +1,5 @@
+import SEO from '../components/SEO';
+
 export default function TermsOfService() {
   const lastUpdated = 'April 4, 2026';
   const companyName = 'Optimized Performance Inc.';
@@ -6,6 +8,7 @@ export default function TermsOfService() {
 
   return (
     <div style={styles.page}>
+      <SEO title="Terms of Service" description="Optimized Performance terms of service — research use only disclaimer, ordering terms, and policies." path="/terms" />
       <div style={styles.headerBanner}>
         <p style={styles.eyebrow}>Legal</p>
         <h1 style={styles.title}>Terms of Service</h1>

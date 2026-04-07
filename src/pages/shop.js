@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ProductCard from '../components/ProductCard';
 import products, { getEffectiveStock } from '../data/products';
 import { supabaseAdmin } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 const CATEGORIES = ['All', 'GLPs', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
 
@@ -14,6 +15,11 @@ export default function Shop({ inventory }) {
 
   return (
     <div style={styles.page}>
+      <SEO
+        title="Shop Research Peptides"
+        description="Browse our full catalog of research-grade peptides. BPC-157, TB-500, GLP-3, Ipamorelin, HGH 191AA, MT-2, NAD+, and combo kits. 99% purity, fast shipping."
+        path="/shop"
+      />
       <div style={styles.headerBanner}>
         <p style={styles.eyebrow}>Research Peptides</p>
         <h1 style={styles.title}>Optimized Performance Catalog</h1>

@@ -13,6 +13,8 @@ export default function Footer() {
         </div>
         <div style={styles.right}>
           <Link href="/shop" style={styles.link}>Shop</Link>
+          <Link href="/faq" style={styles.link}>FAQ</Link>
+          <Link href="/shipping" style={styles.link}>Shipping & Returns</Link>
           <Link href="/privacy" style={styles.link}>Privacy Policy</Link>
           <Link href="/terms" style={styles.link}>Terms of Service</Link>
         </div>

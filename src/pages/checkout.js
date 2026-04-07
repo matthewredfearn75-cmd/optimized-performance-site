@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useCart } from '../context/CartContext';
+import SEO from '../components/SEO';
 
 const MoonPayBuyWidget = dynamic(
   () => import('@moonpay/moonpay-react').then((mod) => mod.MoonPayBuyWidget),
@@ -137,6 +138,7 @@ export default function Checkout() {
 
   return (
     <div style={styles.container}>
+      <SEO title="Checkout" description="Complete your order — secure payment via MoonPay." path="/checkout" />
       <h1 style={styles.title}>Checkout</h1>
 
       <div style={styles.grid}>
