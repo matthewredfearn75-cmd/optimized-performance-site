@@ -151,7 +151,7 @@ export default function OrdersTab({ products, showSaveMsg }) {
 
   function exportCSV() {
     const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
-    const headers = ['Order #', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Subtotal', 'Total', 'Tracking', 'Notes'];
+    const headers = ['Order #', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Subtotal', 'Discount', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
     const rows = filtered.map((o) => [
       o.orderNumber,
       STATUS_LABELS[o.status],
@@ -164,7 +164,10 @@ export default function OrdersTab({ products, showSaveMsg }) {
       o.shipping?.zip || '',
       o.items.map((i) => `${i.name} x${i.quantity}`).join('; '),
       o.subtotal?.toFixed(2) || '0.00',
+      o.discount?.toFixed(2) || '0.00',
       o.total?.toFixed(2) || '0.00',
+      o.affiliateCode || '',
+      o.affiliateCommissionPct || '',
       o.tracking || '',
       o.notes || '',
     ]);
@@ -356,7 +359,15 @@ export default function OrdersTab({ products, showSaveMsg }) {
                                   {it.name} ({it.dosage}) — {it.quantity} x ${it.price?.toFixed(2)} = ${(it.quantity * (it.price || 0)).toFixed(2)}
                                 </div>
                               ))}
+                              {order.discount > 0 && (
+                                <div style={{ ...s.detailValue, color: '#16a34a', marginTop: 4 }}>Discount: -${order.discount.toFixed(2)} ({order.affiliateCode})</div>
+                              )}
                               <div style={{ ...s.detailValue, fontWeight: 700, marginTop: 4 }}>Total: ${(order.total || 0).toFixed(2)}</div>
+                              {order.affiliateCode && (
+                                <div style={{ ...s.detailValue, color: '#d97706', marginTop: 4 }}>
+                                  Affiliate: {order.affiliateCode} ({order.affiliateCommissionPct}% commission = ${((order.total || 0) * (order.affiliateCommissionPct || 0) / 100).toFixed(2)})
+                                </div>
+                              )}
                             </div>
                             <div>
                               <div style={s.detailLabel}>Tracking</div>

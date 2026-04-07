@@ -3,6 +3,7 @@ import products from '../../data/products';
 import InventoryTab from './InventoryTab';
 import SupplyTab from './SupplyTab';
 import OrdersTab from './OrdersTab';
+import AffiliatesTab from './AffiliatesTab';
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -40,6 +41,7 @@ export default function AdminPage() {
     sessionStorage.removeItem('op_admin_token');
     localStorage.removeItem('op_orders');
     localStorage.removeItem('op_supply_lots');
+    localStorage.removeItem('op_affiliates');
     setAuthed(false);
   }
 
@@ -76,6 +78,7 @@ export default function AdminPage() {
     { id: 'orders', label: 'Orders' },
     { id: 'inventory', label: 'Inventory' },
     { id: 'supply', label: 'Supply Tracker' },
+    { id: 'affiliates', label: 'Affiliates' },
   ];
 
   return (
@@ -113,6 +116,7 @@ export default function AdminPage() {
         {activeTab === 'orders' && <OrdersTab products={products} showSaveMsg={showSaveMsg} />}
         {activeTab === 'inventory' && <InventoryTab products={products} showSaveMsg={showSaveMsg} />}
         {activeTab === 'supply' && <SupplyTab products={products} />}
+        {activeTab === 'affiliates' && <AffiliatesTab showSaveMsg={showSaveMsg} />}
       </div>
     </div>
   );

@@ -20,7 +20,38 @@ export default function Checkout() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [affiliateCode, setAffiliateCode] = useState('');
+  const [affiliateApplied, setAffiliateApplied] = useState(null);
+  const [affiliateError, setAffiliateError] = useState('');
   const router = useRouter();
+
+  function applyAffiliateCode() {
+    if (!affiliateCode.trim()) {
+      setAffiliateApplied(null);
+      setAffiliateError('');
+      return;
+    }
+    const code = affiliateCode.toUpperCase().trim();
+    try {
+      const saved = localStorage.getItem('op_affiliates');
+      const affiliates = saved ? JSON.parse(saved) : [];
+      const match = affiliates.find(a => a.code === code && a.active);
+      if (match) {
+        setAffiliateApplied(match);
+        setAffiliateError('');
+      } else {
+        setAffiliateApplied(null);
+        setAffiliateError('Invalid or inactive code.');
+      }
+    } catch {
+      setAffiliateApplied(null);
+      setAffiliateError('Invalid code.');
+    }
+  }
+
+  const discountPct = affiliateApplied ? affiliateApplied.discountPct : 0;
+  const discountAmount = cartTotal * (discountPct / 100);
+  const discountedTotal = cartTotal - discountAmount;
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
@@ -85,7 +116,10 @@ export default function Checkout() {
             quantity: item.quantity,
           })),
           subtotal: cartTotal,
-          total: Math.ceil(cartTotal * 1.04 * 100) / 100,
+          discount: discountAmount,
+          total: Math.ceil(discountedTotal * 1.04 * 100) / 100,
+          affiliateCode: affiliateApplied?.code || null,
+          affiliateCommissionPct: affiliateApplied?.commissionPct || 0,
         }),
       });
 
@@ -173,12 +207,38 @@ export default function Checkout() {
               </div>
             </div>
 
+            <div style={{ ...styles.field, marginTop: 8 }}>
+              <label style={styles.label}>Affiliate / Promo Code</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  style={{ ...styles.input, flex: 1, textTransform: 'uppercase', fontFamily: 'monospace', fontWeight: 600 }}
+                  type="text"
+                  value={affiliateCode}
+                  onChange={(e) => { setAffiliateCode(e.target.value); setAffiliateApplied(null); setAffiliateError(''); }}
+                  placeholder="Enter code"
+                />
+                <button type="button" onClick={applyAffiliateCode} style={{ ...styles.payBtn, width: 'auto', padding: '10px 18px', fontSize: 13, marginTop: 0 }}>
+                  Apply
+                </button>
+              </div>
+              {affiliateApplied && (
+                <p style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, marginTop: 6, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+                  Code "{affiliateApplied.code}" applied — {affiliateApplied.discountPct}% off!
+                </p>
+              )}
+              {affiliateError && (
+                <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginTop: 6, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+                  {affiliateError}
+                </p>
+              )}
+            </div>
+
             <button type="submit" style={styles.payBtn} disabled={submitting}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 8 }}>
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                 <line x1="1" y1="10" x2="23" y2="10"/>
               </svg>
-              {submitting ? 'Processing...' : `Pay $${cartTotal.toFixed(2)} with Card`}
+              {submitting ? 'Processing...' : `Pay $${discountedTotal.toFixed(2)} with Card`}
             </button>
             <p style={styles.payNote}>
               Your card payment is securely converted to USDC via MoonPay.
@@ -205,9 +265,21 @@ export default function Checkout() {
             ))}
           </div>
           <div style={styles.summaryDivider} />
+          {affiliateApplied && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', marginBottom: 4 }}>
+                <span style={{ fontSize: 13, color: '#5A7D9A', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>Subtotal</span>
+                <span style={{ fontSize: 13, color: '#5A7D9A', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>${cartTotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>Discount ({affiliateApplied.discountPct}% — {affiliateApplied.code})</span>
+                <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>-${discountAmount.toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <div style={styles.summaryTotal}>
             <span style={styles.totalLabel}>Total</span>
-            <span style={styles.totalAmount}>${cartTotal.toFixed(2)}</span>
+            <span style={styles.totalAmount}>${discountedTotal.toFixed(2)}</span>
           </div>
           <div style={styles.disclaimer}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 6, flexShrink: 0 }}>
@@ -223,13 +295,31 @@ export default function Checkout() {
       <MoonPayBuyWidget
         variant="overlay"
         baseCurrencyCode="usd"
-        baseCurrencyAmount={String(Math.ceil(cartTotal * 1.04))}
+        baseCurrencyAmount={String(Math.ceil(discountedTotal * 1.04))}
         defaultCurrencyCode="usdc_polygon"
         externalTransactionId={orderNumber}
         visible={showMoonPay}
         onCloseOverlay={() => setShowMoonPay(false)}
         onTransactionCompleted={() => {
           setShowMoonPay(false);
+          // Update affiliate stats if code was used
+          if (affiliateApplied) {
+            try {
+              const saved = localStorage.getItem('op_affiliates');
+              const affiliates = saved ? JSON.parse(saved) : [];
+              const commission = discountedTotal * (affiliateApplied.commissionPct / 100);
+              const updated = affiliates.map(a => {
+                if (a.code !== affiliateApplied.code) return a;
+                return {
+                  ...a,
+                  totalSales: (a.totalSales || 0) + 1,
+                  totalRevenue: (a.totalRevenue || 0) + discountedTotal,
+                  totalCommission: (a.totalCommission || 0) + commission,
+                };
+              });
+              localStorage.setItem('op_affiliates', JSON.stringify(updated));
+            } catch { /* silently fail */ }
+          }
           clearCart();
           setOrderPlaced(true);
         }}
