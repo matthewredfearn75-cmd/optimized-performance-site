@@ -1,16 +1,33 @@
 import { supabaseAdmin } from '../../../lib/supabase'
 import { sendEmailAlert, sendSmsAlert } from '../../../lib/alerts'
+import { validateSessionToken } from '../../../lib/session'
+import { validateOrigin, rateLimit } from '../../../lib/security'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
+  if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
+  if (!rateLimit(req, { maxRequests: 30, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
 
   try {
     const body = req.body
 
-    // Admin panel bulk update: { password, updates: { productId: qty, ... } }
-    if (body.password !== undefined) {
-      const adminPassword = process.env.ADMIN_PASSWORD || 'optimized2024'
-      if (body.password !== adminPassword) {
+    // Admin panel bulk update: { token, updates: { productId: qty, ... } }
+    // Also supports legacy { password, updates } for backwards compat
+    if (body.token !== undefined || body.password !== undefined) {
+      let authorized = false
+
+      if (body.token) {
+        authorized = validateSessionToken(body.token)
+      } else if (body.password) {
+        const adminPassword = process.env.ADMIN_PASSWORD
+        if (!adminPassword) {
+          console.error('ADMIN_PASSWORD environment variable is not configured')
+          return res.status(500).json({ error: 'Server configuration error' })
+        }
+        authorized = body.password === adminPassword
+      }
+
+      if (!authorized) {
         return res.status(401).json({ error: 'Unauthorized' })
       }
 

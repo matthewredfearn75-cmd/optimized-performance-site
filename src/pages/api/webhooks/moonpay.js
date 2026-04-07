@@ -30,14 +30,20 @@ export default async function handler(req, res) {
     const rawBody = await readRawBody(req)
     const signature = req.headers['moonpay-signature-v2'] || req.headers['moonpay-signature']
 
-    // Verify webhook signature
+    // Verify webhook signature — MANDATORY
     const secret = process.env.MOONPAY_WEBHOOK_SECRET
-    if (secret && signature) {
-      const isValid = verifySignature(rawBody, signature, secret)
-      if (!isValid) {
-        console.error('MoonPay webhook signature verification failed')
-        return res.status(401).json({ error: 'Invalid signature' })
-      }
+    if (!secret) {
+      console.error('MOONPAY_WEBHOOK_SECRET is not configured')
+      return res.status(500).json({ error: 'Server configuration error' })
+    }
+    if (!signature) {
+      console.error('MoonPay webhook missing signature header')
+      return res.status(401).json({ error: 'Missing signature' })
+    }
+    const isValid = verifySignature(rawBody, signature, secret)
+    if (!isValid) {
+      console.error('MoonPay webhook signature verification failed')
+      return res.status(401).json({ error: 'Invalid signature' })
     }
 
     const event = JSON.parse(rawBody)

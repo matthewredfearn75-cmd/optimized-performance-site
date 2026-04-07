@@ -13,7 +13,10 @@ export default function InventoryTab({ products, showSaveMsg }) {
 
   async function fetchInventory() {
     try {
-      const res = await fetch('/api/inventory');
+      const token = sessionStorage.getItem('op_admin_token') || '';
+      const res = await fetch('/api/inventory', {
+        headers: { 'x-admin-token': token },
+      });
       const data = await res.json();
       setInventory(data);
       setEdits(data);
@@ -24,11 +27,11 @@ export default function InventoryTab({ products, showSaveMsg }) {
 
   async function handleSave() {
     setSaving(true);
-    const pw = sessionStorage.getItem('op_admin_pw') || '';
+    const token = sessionStorage.getItem('op_admin_token') || '';
     const res = await fetch('/api/inventory/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw, updates: edits }),
+      body: JSON.stringify({ token, updates: edits }),
     });
     if (res.ok) {
       const updated = await res.json();

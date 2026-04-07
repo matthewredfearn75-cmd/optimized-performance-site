@@ -17,16 +17,19 @@ export default function AdminPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    const res = await fetch('/api/inventory/update', {
+    const res = await fetch('/api/admin/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, updates: {} }),
+      body: JSON.stringify({ password }),
     });
     if (res.status === 401) {
       setAuthError('Incorrect password.');
+    } else if (!res.ok) {
+      setAuthError('Server error. Check ADMIN_PASSWORD env var.');
     } else {
+      const { token } = await res.json();
       sessionStorage.setItem('op_admin', '1');
-      sessionStorage.setItem('op_admin_pw', password);
+      sessionStorage.setItem('op_admin_token', token);
       setAuthed(true);
       setAuthError('');
     }
@@ -34,7 +37,9 @@ export default function AdminPage() {
 
   function logout() {
     sessionStorage.removeItem('op_admin');
-    sessionStorage.removeItem('op_admin_pw');
+    sessionStorage.removeItem('op_admin_token');
+    localStorage.removeItem('op_orders');
+    localStorage.removeItem('op_supply_lots');
     setAuthed(false);
   }
 

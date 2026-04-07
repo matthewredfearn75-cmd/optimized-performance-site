@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../../lib/supabase'
+import { validateOrigin, rateLimit, validateEmail, validateString, validateZip } from '../../../lib/security'
 
 function generateOrderNumber() {
   const date = new Date()
@@ -11,12 +12,20 @@ function generateOrderNumber() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
+  if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
+  if (!rateLimit(req, { maxRequests: 10, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
 
   try {
     const { name, email, address, city, state, zip, items, subtotal, total } = req.body
 
-    if (!name || !email || !address || !city || !state || !zip || !items || !items.length) {
-      return res.status(400).json({ error: 'Missing required fields' })
+    if (!validateString(name) || !validateEmail(email) || !validateString(address) ||
+        !validateString(city) || !validateString(state, { maxLength: 2 }) || !validateZip(zip) ||
+        !Array.isArray(items) || !items.length || items.length > 50) {
+      return res.status(400).json({ error: 'Invalid or missing required fields' })
+    }
+
+    if (typeof subtotal !== 'number' || typeof total !== 'number' || total <= 0 || total > 50000) {
+      return res.status(400).json({ error: 'Invalid order totals' })
     }
 
     const orderNumber = generateOrderNumber()

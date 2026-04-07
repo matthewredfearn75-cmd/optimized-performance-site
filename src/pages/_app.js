@@ -12,8 +12,8 @@ const MoonPayProvider = dynamic(
 export default function App({ Component, pageProps }) {
   return (
     <MoonPayProvider
-      apiKey={process.env.NEXT_PUBLIC_MOONPAY_API_KEY || 'pk_test_placeholder'}
-      debug
+      apiKey={process.env.NEXT_PUBLIC_MOONPAY_API_KEY}
+      debug={process.env.NODE_ENV === 'development'}
     >
     <CartProvider>
       <div style={{
