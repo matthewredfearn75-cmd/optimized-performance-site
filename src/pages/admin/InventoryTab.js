@@ -48,10 +48,12 @@ export default function InventoryTab({ products, showSaveMsg }) {
     setEdits((prev) => ({ ...prev, [id]: Math.max(0, Number(val) || 0) }));
   }
 
+  // Only show base SKUs in inventory (kits derive stock from parent)
+  const baseProducts = products.filter((p) => !p.isKit);
   const totalUnits = Object.values(edits).reduce((a, b) => a + b, 0);
-  const totalValue = products.reduce((sum, p) => sum + (edits[p.id] ?? p.stock ?? 0) * p.price, 0);
-  const lowStockItems = products.filter((p) => (edits[p.id] ?? p.stock ?? 0) > 0 && (edits[p.id] ?? p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
-  const outOfStockItems = products.filter((p) => (edits[p.id] ?? p.stock ?? 0) === 0);
+  const totalValue = baseProducts.reduce((sum, p) => sum + (edits[p.id] ?? p.stock ?? 0) * p.price, 0);
+  const lowStockItems = baseProducts.filter((p) => (edits[p.id] ?? p.stock ?? 0) > 0 && (edits[p.id] ?? p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
+  const outOfStockItems = baseProducts.filter((p) => (edits[p.id] ?? p.stock ?? 0) === 0);
 
   return (
     <>
@@ -64,7 +66,7 @@ export default function InventoryTab({ products, showSaveMsg }) {
 
       <div style={s.statsRow}>
         <div style={s.statCard}>
-          <div style={s.statValue}>{products.length}</div>
+          <div style={s.statValue}>{baseProducts.length}</div>
           <div style={s.statLabel}>Total SKUs</div>
         </div>
         <div style={s.statCard}>
@@ -114,7 +116,7 @@ export default function InventoryTab({ products, showSaveMsg }) {
             </tr>
           </thead>
           <tbody>
-            {products.map((p, i) => {
+            {baseProducts.map((p, i) => {
               const qty = edits[p.id] ?? p.stock ?? 0;
               const status = qty === 0 ? 'out' : qty <= LOW_STOCK_THRESHOLD ? 'low' : 'in';
               return (

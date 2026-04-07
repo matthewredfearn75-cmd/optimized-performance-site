@@ -114,14 +114,19 @@ export default function OrdersTab({ products, showSaveMsg }) {
   }
 
   function decrementInventory(items) {
-    // Decrement supply tracker lots
+    // Decrement supply tracker lots (kits deduct from parent product)
     const lotsRaw = localStorage.getItem('op_supply_lots');
     if (!lotsRaw) return;
     const lots = JSON.parse(lotsRaw);
     items.forEach((item) => {
-      let remaining = item.quantity;
+      const product = products.find(p => p.id === item.productId);
+      const isKit = product?.isKit;
+      const deductId = isKit ? product.parentId : item.productId;
+      const deductQty = isKit ? (product.vialCount * item.quantity) : item.quantity;
+
+      let remaining = deductQty;
       for (let i = 0; i < lots.length && remaining > 0; i++) {
-        if (lots[i].product === item.productId && lots[i].qtyRemaining > 0) {
+        if (lots[i].product === deductId && lots[i].qtyRemaining > 0) {
           const deduct = Math.min(remaining, lots[i].qtyRemaining);
           lots[i].qtyRemaining -= deduct;
           remaining -= deduct;

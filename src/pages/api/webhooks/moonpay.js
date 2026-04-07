@@ -85,23 +85,32 @@ export default async function handler(req, res) {
       })
       .eq('id', order.id)
 
-    // Decrement inventory for each item
+    // Decrement inventory for each item (kits deduct from parent SKU)
+    const products = require('../../../data/products').default
     const lowStockItems = []
     for (const item of order.items) {
+      const product = products.find(p => p.sku === item.sku)
+      const isKit = product?.isKit
+      const parentProduct = isKit ? products.find(p => p.id === product.parentId) : null
+      const deductSku = isKit ? parentProduct?.sku : item.sku
+      const deductQty = isKit ? (product.vialCount * item.quantity) : item.quantity
+
+      if (!deductSku) continue
+
       const { data: invItem, error: invError } = await supabaseAdmin
         .from('inventory')
         .select('*')
-        .eq('sku', item.sku)
+        .eq('sku', deductSku)
         .single()
 
       if (invError || !invItem) continue
 
-      const newStock = Math.max(0, invItem.stock - item.quantity)
+      const newStock = Math.max(0, invItem.stock - deductQty)
 
       await supabaseAdmin
         .from('inventory')
         .update({ stock: newStock })
-        .eq('sku', item.sku)
+        .eq('sku', deductSku)
 
       if (newStock <= invItem.threshold) {
         lowStockItems.push({ ...invItem, stock: newStock, level: 'critical' })

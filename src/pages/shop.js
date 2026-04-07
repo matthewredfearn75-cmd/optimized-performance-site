@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import ProductCard from '../components/ProductCard';
-import products from '../data/products';
+import products, { getEffectiveStock } from '../data/products';
 import { supabaseAdmin } from '../lib/supabase';
 
-const CATEGORIES = ['All', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
+const CATEGORIES = ['All', 'GLPs', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
 
 export default function Shop({ inventory }) {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -52,7 +52,7 @@ export default function Shop({ inventory }) {
       <div style={styles.container}>
         <div style={styles.grid}>
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} qty={inventory[product.id]} />
+            <ProductCard key={product.id} product={product} qty={product.isKit ? getEffectiveStock(product, inventory) : inventory[product.id]} />
           ))}
         </div>
       </div>
@@ -103,7 +103,7 @@ export async function getServerSideProps() {
     // Fallback to product defaults if Supabase is unreachable
     const inventory = {}
     const products = require('../data/products').default
-    products.forEach(p => { inventory[p.id] = p.stock })
+    products.filter(p => !p.isKit).forEach(p => { inventory[p.id] = p.stock })
     return { props: { inventory } }
   }
 }

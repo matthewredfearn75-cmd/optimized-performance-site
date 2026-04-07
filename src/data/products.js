@@ -39,7 +39,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 20,
+    isKit: true,
+    parentId: 'glp3-10mg',
+    vialCount: 10,
   },
   {
     id: 'glp3-20mg-kit',
@@ -53,7 +55,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 15,
+    isKit: true,
+    parentId: 'glp3-20mg',
+    vialCount: 10,
   },
   {
     id: 'bpc-5mg',
@@ -81,7 +85,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 15,
+    isKit: true,
+    parentId: 'bpc-5mg',
+    vialCount: 10,
   },
   {
     id: 'bpc-10mg',
@@ -109,7 +115,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 10,
+    isKit: true,
+    parentId: 'bpc-10mg',
+    vialCount: 10,
   },
   {
     id: 'tb500-5mg',
@@ -137,7 +145,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 10,
+    isKit: true,
+    parentId: 'tb500-5mg',
+    vialCount: 10,
   },
   {
     id: 'tb500-10mg',
@@ -165,7 +175,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 8,
+    isKit: true,
+    parentId: 'tb500-10mg',
+    vialCount: 10,
   },
   {
     id: 'combo-70mg',
@@ -193,7 +205,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 8,
+    isKit: true,
+    parentId: 'combo-70mg',
+    vialCount: 10,
   },
   {
     id: 'ipa-5mg',
@@ -221,7 +235,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 10,
+    isKit: true,
+    parentId: 'ipa-5mg',
+    vialCount: 10,
   },
   {
     id: 'hgh-10iu',
@@ -249,7 +265,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 8,
+    isKit: true,
+    parentId: 'hgh-10iu',
+    vialCount: 10,
   },
   {
     id: 'mt2-5mg',
@@ -277,7 +295,9 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 10,
+    isKit: true,
+    parentId: 'mt2-5mg',
+    vialCount: 10,
   },
   {
     id: 'nad-500mg',
@@ -305,8 +325,28 @@ const products = [
     vialSize: '10 x 2 mL Vials',
     inStock: true,
     badge: 'BUNDLE',
-    stock: 8,
+    isKit: true,
+    parentId: 'nad-500mg',
+    vialCount: 10,
   },
 ];
+
+// Helper: get effective stock for a product (kits derive from parent)
+export function getEffectiveStock(product, inventoryMap = {}) {
+  if (product.isKit) {
+    const parent = products.find((p) => p.id === product.parentId);
+    const parentStock = inventoryMap[product.parentId] ?? parent?.stock ?? 0;
+    return Math.floor(parentStock / product.vialCount);
+  }
+  return inventoryMap[product.id] ?? product.stock ?? 0;
+}
+
+// Helper: get vials to deduct from inventory for an order item
+export function getInventoryDeductions(product, quantity = 1) {
+  if (product.isKit) {
+    return [{ productId: product.parentId, vials: product.vialCount * quantity }];
+  }
+  return [{ productId: product.id, vials: quantity }];
+}
 
 export default products;
