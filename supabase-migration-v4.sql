@@ -1,8 +1,62 @@
 -- Migration v4: Admin data to DB + RLS + webhook replay protection
 -- Run this in Supabase SQL Editor
+-- Safe to run multiple times (idempotent)
 
 -- =========================================
--- 1. AFFILIATES TABLE (for server-side codes)
+-- 1. ORDERS TABLE (create if missing, add missing columns)
+-- =========================================
+CREATE TABLE IF NOT EXISTS orders (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_number text UNIQUE NOT NULL,
+  customer_name text NOT NULL,
+  customer_email text NOT NULL,
+  shipping_address text,
+  city text,
+  state text,
+  zip text,
+  items jsonb,
+  subtotal numeric(10,2),
+  total numeric(10,2),
+  discount numeric(10,2) DEFAULT 0,
+  payment_status text DEFAULT 'pending',
+  fulfillment_status text DEFAULT 'pending',
+  moonpay_tx_id text,
+  tracking text,
+  notes text,
+  affiliate_code text,
+  affiliate_commission_pct numeric(5,2) DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Add columns if orders table existed without them
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS zip text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS items jsonb;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal numeric(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS total numeric(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount numeric(10,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'pending';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fulfillment_status text DEFAULT 'pending';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS moonpay_tx_id text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS affiliate_code text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS affiliate_commission_pct numeric(5,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+-- Ensure moonpay_tx_id is UNIQUE for replay protection
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'orders_moonpay_tx_id_key'
+  ) THEN
+    ALTER TABLE orders ADD CONSTRAINT orders_moonpay_tx_id_key UNIQUE (moonpay_tx_id);
+  END IF;
+END $$;
+
+-- =========================================
+-- 2. AFFILIATES TABLE
 -- =========================================
 CREATE TABLE IF NOT EXISTS affiliates (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -24,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_affiliates_code ON affiliates(code);
 CREATE INDEX IF NOT EXISTS idx_affiliates_active ON affiliates(active);
 
 -- =========================================
--- 2. SUPPLY LOTS TABLE
+-- 3. SUPPLY LOTS TABLE
 -- =========================================
 CREATE TABLE IF NOT EXISTS supply_lots (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -41,22 +95,6 @@ CREATE TABLE IF NOT EXISTS supply_lots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_lots_product_id ON supply_lots(product_id);
-
--- =========================================
--- 3. ORDER TABLE UPDATES (for fulfillment tracking + replay protection)
--- =========================================
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS fulfillment_status text DEFAULT 'pending';
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes text;
-
--- Ensure moonpay_tx_id is UNIQUE for replay protection
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'orders_moonpay_tx_id_key'
-  ) THEN
-    ALTER TABLE orders ADD CONSTRAINT orders_moonpay_tx_id_key UNIQUE (moonpay_tx_id);
-  END IF;
-END $$;
 
 -- =========================================
 -- 4. WEBHOOK EVENTS TABLE (replay protection)
@@ -76,7 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_events_lookup ON webhook_events(provider,
 -- 5. ROW LEVEL SECURITY (RLS)
 -- =========================================
 
--- Inventory: public read (limited), only service role can write
+-- Inventory: public read only
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can read inventory stock" ON inventory;
 CREATE POLICY "Public can read inventory stock"
@@ -84,9 +122,8 @@ CREATE POLICY "Public can read inventory stock"
   TO anon, authenticated
   USING (true);
 
--- Orders: NO public access, only service role
+-- Orders: NO public access, only service role (bypasses RLS)
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
--- (no policies = no access for anon/authenticated; service role bypasses RLS)
 
 -- Affiliates: only service role
 ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY;
@@ -100,7 +137,3 @@ ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 -- =========================================
 -- DONE
 -- =========================================
--- After running this, your Supabase tables will show:
--- - inventory: RLS enabled, public read only
--- - orders, affiliates, supply_lots, webhook_events: RLS enabled, service-only
--- - orders.moonpay_tx_id: UNIQUE constraint prevents webhook replays
