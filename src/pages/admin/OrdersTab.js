@@ -1,20 +1,25 @@
 import { Fragment, useEffect, useState } from 'react';
 
+// Forward-flow status order. 'cancelled' is a terminal state reached via the
+// Cancel button, not part of the normal progression.
 const STATUSES = ['pending', 'packed', 'shipped', 'fulfilled'];
+const ALL_STATUSES = [...STATUSES, 'cancelled'];
 const STATUS_LABELS = {
   pending: 'Pending',
   packed: 'Packed',
   shipped: 'Shipped',
   fulfilled: 'Fulfilled',
+  cancelled: 'Cancelled',
 };
 const STATUS_CLASSES = {
   pending: 'bg-warning/10 text-warning border-warning/30',
   packed: 'bg-accent-soft text-accent-strong border-accent/30',
   shipped: 'bg-ink/10 text-ink border-ink/30',
   fulfilled: 'bg-success/10 text-success border-success/30',
+  cancelled: 'bg-danger/10 text-danger border-danger/30',
 };
 
-export default function OrdersTab({ products, showSaveMsg }) {
+export default function OrdersTab({ products, showSaveMsg, token }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -27,7 +32,7 @@ export default function OrdersTab({ products, showSaveMsg }) {
   function authHeaders() {
     return {
       'Content-Type': 'application/json',
-      'x-admin-token': sessionStorage.getItem('op_admin_token') || '',
+      'x-admin-token': token || '',
     };
   }
 
@@ -69,13 +74,13 @@ export default function OrdersTab({ products, showSaveMsg }) {
     }
   }
 
-  async function deleteOrder(orderId) {
-    if (!window.confirm('Delete this order?')) return;
+  async function cancelOrder(orderId) {
+    if (!window.confirm('Mark this order as cancelled? (Records are preserved for audit.)')) return;
     try {
       await fetch('/api/admin/orders', {
-        method: 'DELETE',
+        method: 'PATCH',
         headers: authHeaders(),
-        body: JSON.stringify({ id: orderId }),
+        body: JSON.stringify({ id: orderId, status: 'cancelled' }),
       });
       await fetchOrders();
     } catch {
@@ -107,7 +112,7 @@ export default function OrdersTab({ products, showSaveMsg }) {
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => (o.fulfillment_status || 'pending') === filter);
   const counts = { all: orders.length };
-  STATUSES.forEach((st) => {
+  ALL_STATUSES.forEach((st) => {
     counts[st] = orders.filter((o) => (o.fulfillment_status || 'pending') === st).length;
   });
 
@@ -137,7 +142,7 @@ export default function OrdersTab({ products, showSaveMsg }) {
       </div>
 
       <div className="flex gap-1.5 mb-4 flex-wrap">
-        {['all', ...STATUSES].map((st) => (
+        {['all', ...ALL_STATUSES].map((st) => (
           <button
             key={st}
             onClick={() => setFilter(st)}
@@ -220,12 +225,14 @@ export default function OrdersTab({ products, showSaveMsg }) {
                               → {STATUS_LABELS[nextStatus]}
                             </button>
                           )}
-                          <button
-                            className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-danger hover:bg-surfaceAlt"
-                            onClick={() => deleteOrder(order.id)}
-                          >
-                            Del
-                          </button>
+                          {status !== 'cancelled' && (
+                            <button
+                              className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-danger hover:bg-surfaceAlt"
+                              onClick={() => cancelOrder(order.id)}
+                            >
+                              Cancel
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

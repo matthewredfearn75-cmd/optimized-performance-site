@@ -2,6 +2,18 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { validateSessionToken } from '../../../lib/session'
 import { validateOrigin, rateLimit, validateEmail, validateString } from '../../../lib/security'
 
+// Clamp percent values to [0, 100]. Returns null on invalid, or defaultValue if provided.
+function clampPercent(raw, defaultValue) {
+  if (raw === undefined || raw === null || raw === '') {
+    return defaultValue !== undefined ? defaultValue : null
+  }
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0 || n > 100) {
+    return defaultValue !== undefined ? defaultValue : null
+  }
+  return Math.round(n * 100) / 100
+}
+
 function requireAuth(req) {
   const token = req.headers['x-admin-token']
   return validateSessionToken(token)
@@ -34,6 +46,8 @@ export default async function handler(req, res) {
       if (!normalizedCode || normalizedCode.length > 50) {
         return res.status(400).json({ error: 'Invalid code' })
       }
+      const discount = clampPercent(discountPct, 10)
+      const commission = clampPercent(commissionPct, 5)
 
       const { data, error } = await supabaseAdmin
         .from('affiliates')
@@ -41,8 +55,8 @@ export default async function handler(req, res) {
           name,
           email,
           code: normalizedCode,
-          discount_pct: Number(discountPct) || 10,
-          commission_pct: Number(commissionPct) || 5,
+          discount_pct: discount,
+          commission_pct: commission,
           active: active !== false,
           notes: notes || '',
         })
@@ -65,8 +79,16 @@ export default async function handler(req, res) {
       const patch = {}
       if (updates.name !== undefined) patch.name = updates.name
       if (updates.email !== undefined) patch.email = updates.email
-      if (updates.discountPct !== undefined) patch.discount_pct = Number(updates.discountPct)
-      if (updates.commissionPct !== undefined) patch.commission_pct = Number(updates.commissionPct)
+      if (updates.discountPct !== undefined) {
+        const v = clampPercent(updates.discountPct)
+        if (v === null) return res.status(400).json({ error: 'Invalid discountPct' })
+        patch.discount_pct = v
+      }
+      if (updates.commissionPct !== undefined) {
+        const v = clampPercent(updates.commissionPct)
+        if (v === null) return res.status(400).json({ error: 'Invalid commissionPct' })
+        patch.commission_pct = v
+      }
       if (updates.active !== undefined) patch.active = !!updates.active
       if (updates.notes !== undefined) patch.notes = updates.notes
       patch.updated_at = new Date().toISOString()

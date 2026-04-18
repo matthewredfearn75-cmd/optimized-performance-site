@@ -7,7 +7,7 @@ function requireAuth(req) {
   return validateSessionToken(token)
 }
 
-const ALLOWED_STATUSES = ['pending', 'packed', 'shipped', 'fulfilled']
+const ALLOWED_STATUSES = ['pending', 'packed', 'shipped', 'fulfilled', 'cancelled']
 
 export default async function handler(req, res) {
   if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
@@ -52,14 +52,7 @@ export default async function handler(req, res) {
       return res.status(200).json(data)
     }
 
-    if (req.method === 'DELETE') {
-      const { id } = req.body
-      if (!id) return res.status(400).json({ error: 'Missing id' })
-      const { error } = await supabaseAdmin.from('orders').delete().eq('id', id)
-      if (error) throw error
-      return res.status(200).json({ ok: true })
-    }
-
+    // Hard-delete removed for audit/compliance. Use PATCH { status: 'cancelled' } instead.
     return res.status(405).end()
   } catch (err) {
     console.error('Admin orders error:', err)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import products from '../../data/products';
 import InventoryTab from './InventoryTab';
 import SupplyTab from './SupplyTab';
@@ -6,16 +6,18 @@ import OrdersTab from './OrdersTab';
 import AffiliatesTab from './AffiliatesTab';
 import { Logo } from '../../components/Primitives';
 
+// Admin session token is kept in React state only — never in sessionStorage or
+// localStorage — so a cross-site scripting payload cannot steal it.
+// Refresh = fresh login. That's intentional.
+
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
+  const [token, setToken] = useState(null);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('orders');
   const [saveMsg, setSaveMsg] = useState('');
 
-  useEffect(() => {
-    if (sessionStorage.getItem('op_admin') === '1') setAuthed(true);
-  }, []);
+  const authed = !!token;
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -27,23 +29,17 @@ export default function AdminPage() {
     if (res.status === 401) {
       setAuthError('Incorrect password.');
     } else if (!res.ok) {
-      setAuthError('Server error. Check ADMIN_PASSWORD env var.');
+      setAuthError('Server error. Check ADMIN_PASSWORD and ADMIN_SESSION_SECRET env vars.');
     } else {
-      const { token } = await res.json();
-      sessionStorage.setItem('op_admin', '1');
-      sessionStorage.setItem('op_admin_token', token);
-      setAuthed(true);
+      const { token: t } = await res.json();
+      setToken(t);
+      setPassword('');
       setAuthError('');
     }
   }
 
   function logout() {
-    sessionStorage.removeItem('op_admin');
-    sessionStorage.removeItem('op_admin_token');
-    localStorage.removeItem('op_orders');
-    localStorage.removeItem('op_supply_lots');
-    localStorage.removeItem('op_affiliates');
-    setAuthed(false);
+    setToken(null);
   }
 
   function showSaveMsg(msg) {
@@ -132,10 +128,10 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {activeTab === 'orders' && <OrdersTab products={products} showSaveMsg={showSaveMsg} />}
-        {activeTab === 'inventory' && <InventoryTab products={products} showSaveMsg={showSaveMsg} />}
-        {activeTab === 'supply' && <SupplyTab products={products} />}
-        {activeTab === 'affiliates' && <AffiliatesTab showSaveMsg={showSaveMsg} />}
+        {activeTab === 'orders' && <OrdersTab products={products} showSaveMsg={showSaveMsg} token={token} />}
+        {activeTab === 'inventory' && <InventoryTab products={products} showSaveMsg={showSaveMsg} token={token} />}
+        {activeTab === 'supply' && <SupplyTab products={products} token={token} />}
+        {activeTab === 'affiliates' && <AffiliatesTab showSaveMsg={showSaveMsg} token={token} />}
       </div>
     </div>
   );

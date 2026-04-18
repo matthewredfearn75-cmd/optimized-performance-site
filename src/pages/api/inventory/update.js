@@ -12,31 +12,21 @@ export default async function handler(req, res) {
     const body = req.body
 
     // Admin panel bulk update: { token, updates: { productId: qty, ... } }
-    // Also supports legacy { password, updates } for backwards compat
-    if (body.token !== undefined || body.password !== undefined) {
-      let authorized = false
-
-      if (body.token) {
-        authorized = validateSessionToken(body.token)
-      } else if (body.password) {
-        const adminPassword = process.env.ADMIN_PASSWORD
-        if (!adminPassword) {
-          console.error('ADMIN_PASSWORD environment variable is not configured')
-          return res.status(500).json({ error: 'Server configuration error' })
-        }
-        authorized = body.password === adminPassword
-      }
-
-      if (!authorized) {
+    if (body.token !== undefined) {
+      if (!validateSessionToken(body.token)) {
         return res.status(401).json({ error: 'Unauthorized' })
       }
 
       if (body.updates && typeof body.updates === 'object') {
+        const MAX_STOCK = 1_000_000
         const entries = Object.entries(body.updates)
         for (const [productId, qty] of entries) {
+          if (typeof productId !== 'string' || productId.length > 100) continue
+          const n = Number(qty)
+          if (!Number.isFinite(n) || n < 0 || n > MAX_STOCK) continue
           await supabaseAdmin
             .from('inventory')
-            .update({ stock: Math.max(0, Number(qty)) })
+            .update({ stock: Math.floor(n) })
             .eq('product_id', productId)
         }
       }

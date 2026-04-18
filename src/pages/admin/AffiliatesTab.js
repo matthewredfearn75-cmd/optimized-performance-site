@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export default function AffiliatesTab({ showSaveMsg }) {
+export default function AffiliatesTab({ showSaveMsg, token }) {
   const [affiliates, setAffiliates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -14,7 +14,7 @@ export default function AffiliatesTab({ showSaveMsg }) {
   function authHeaders() {
     return {
       'Content-Type': 'application/json',
-      'x-admin-token': sessionStorage.getItem('op_admin_token') || '',
+      'x-admin-token': token || '',
     };
   }
 

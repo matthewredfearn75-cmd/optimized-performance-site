@@ -1,22 +1,45 @@
 import crypto from 'crypto'
 
-const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || ''
+const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || ''
+const TOKEN_TTL_MS = 8 * 60 * 60 * 1000 // 8h
 
-export function createSessionToken(password) {
+export function createSessionToken() {
+  if (!SESSION_SECRET) {
+    throw new Error('ADMIN_SESSION_SECRET is not configured')
+  }
   const timestamp = Date.now().toString()
-  const hmac = crypto.createHmac('sha256', SESSION_SECRET)
-  hmac.update(password + ':' + timestamp)
-  return timestamp + '.' + hmac.digest('hex')
+  const hash = crypto
+    .createHmac('sha256', SESSION_SECRET)
+    .update(timestamp)
+    .digest('hex')
+  return `${timestamp}.${hash}`
 }
 
 export function validateSessionToken(token) {
   if (!token || !SESSION_SECRET) return false
-  const [timestamp, hash] = token.split('.')
+
+  const parts = token.split('.')
+  if (parts.length !== 2) return false
+  const [timestamp, hash] = parts
   if (!timestamp || !hash) return false
 
-  // Token expires after 8 hours
-  const age = Date.now() - parseInt(timestamp, 10)
-  if (age > 8 * 60 * 60 * 1000) return false
+  const ts = parseInt(timestamp, 10)
+  if (!Number.isFinite(ts)) return false
 
-  return true
+  const age = Date.now() - ts
+  if (age < 0 || age > TOKEN_TTL_MS) return false
+
+  const expected = crypto
+    .createHmac('sha256', SESSION_SECRET)
+    .update(timestamp)
+    .digest('hex')
+
+  const a = Buffer.from(hash, 'hex')
+  const b = Buffer.from(expected, 'hex')
+  if (a.length !== b.length) return false
+  try {
+    return crypto.timingSafeEqual(a, b)
+  } catch {
+    return false
+  }
 }

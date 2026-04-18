@@ -8,7 +8,7 @@ function generateLotNumber(productId) {
   return `${prefix}-${dateStr}-${seq}`;
 }
 
-export default function SupplyTab({ products }) {
+export default function SupplyTab({ products, token }) {
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -22,7 +22,7 @@ export default function SupplyTab({ products }) {
   function authHeaders() {
     return {
       'Content-Type': 'application/json',
-      'x-admin-token': sessionStorage.getItem('op_admin_token') || '',
+      'x-admin-token': token || '',
     };
   }
 

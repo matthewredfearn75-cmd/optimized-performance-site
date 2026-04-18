@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const LOW_STOCK_THRESHOLD = 20;
 
-export default function InventoryTab({ products, showSaveMsg }) {
+export default function InventoryTab({ products, showSaveMsg, token }) {
   const [inventory, setInventory] = useState({});
   const [edits, setEdits] = useState({});
   const [saving, setSaving] = useState(false);
@@ -13,8 +13,7 @@ export default function InventoryTab({ products, showSaveMsg }) {
 
   async function fetchInventory() {
     try {
-      const token = sessionStorage.getItem('op_admin_token') || '';
-      const res = await fetch('/api/inventory', { headers: { 'x-admin-token': token } });
+      const res = await fetch('/api/inventory', { headers: { 'x-admin-token': token || '' } });
       const data = await res.json();
       setInventory(data);
       setEdits(data);
@@ -25,11 +24,10 @@ export default function InventoryTab({ products, showSaveMsg }) {
 
   async function handleSave() {
     setSaving(true);
-    const token = sessionStorage.getItem('op_admin_token') || '';
     const res = await fetch('/api/inventory/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, updates: edits }),
+      body: JSON.stringify({ token: token || '', updates: edits }),
     });
     if (res.ok) {
       const updated = await res.json();
