@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const LOW_STOCK_THRESHOLD = 20;
 
@@ -14,14 +14,12 @@ export default function InventoryTab({ products, showSaveMsg }) {
   async function fetchInventory() {
     try {
       const token = sessionStorage.getItem('op_admin_token') || '';
-      const res = await fetch('/api/inventory', {
-        headers: { 'x-admin-token': token },
-      });
+      const res = await fetch('/api/inventory', { headers: { 'x-admin-token': token } });
       const data = await res.json();
       setInventory(data);
       setEdits(data);
     } catch {
-      // fallback to empty
+      /* fail */
     }
   }
 
@@ -48,113 +46,105 @@ export default function InventoryTab({ products, showSaveMsg }) {
     setEdits((prev) => ({ ...prev, [id]: Math.max(0, Number(val) || 0) }));
   }
 
-  // Only show base SKUs in inventory (kits derive stock from parent)
   const baseProducts = products.filter((p) => !p.isKit);
   const totalUnits = Object.values(edits).reduce((a, b) => a + b, 0);
   const totalValue = baseProducts.reduce((sum, p) => sum + (edits[p.id] ?? p.stock ?? 0) * p.price, 0);
-  const lowStockItems = baseProducts.filter((p) => (edits[p.id] ?? p.stock ?? 0) > 0 && (edits[p.id] ?? p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
+  const lowStockItems = baseProducts.filter(
+    (p) => (edits[p.id] ?? p.stock ?? 0) > 0 && (edits[p.id] ?? p.stock ?? 0) <= LOW_STOCK_THRESHOLD
+  );
   const outOfStockItems = baseProducts.filter((p) => (edits[p.id] ?? p.stock ?? 0) === 0);
+
+  const fmtMoney = (n) =>
+    n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={s.sectionTitle}>Inventory</h2>
-        <button onClick={handleSave} disabled={saving} style={s.saveBtn}>
-          {saving ? 'Saving...' : 'Save Changes'}
+      <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
+        <h2 className="font-display font-semibold tracking-display text-xl m-0 text-ink">Inventory</h2>
+        <button onClick={handleSave} disabled={saving} className="btn-primary text-xs px-4 py-2">
+          {saving ? 'Saving…' : 'Save Changes'}
         </button>
       </div>
 
-      <div style={s.statsRow}>
-        <div style={s.statCard}>
-          <div style={s.statValue}>{baseProducts.length}</div>
-          <div style={s.statLabel}>Total SKUs</div>
-        </div>
-        <div style={s.statCard}>
-          <div style={s.statValue}>{totalUnits}</div>
-          <div style={s.statLabel}>Units in Stock</div>
-        </div>
-        <div style={s.statCard}>
-          <div style={s.statValue}>${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-          <div style={s.statLabel}>Inventory Value</div>
-        </div>
-        <div style={{ ...s.statCard, borderColor: lowStockItems.length > 0 ? '#f59e0b' : '#E4EDF3' }}>
-          <div style={{ ...s.statValue, color: lowStockItems.length > 0 ? '#f59e0b' : '#0D1B2A' }}>{lowStockItems.length}</div>
-          <div style={s.statLabel}>Low Stock</div>
-        </div>
-        <div style={{ ...s.statCard, borderColor: outOfStockItems.length > 0 ? '#ef4444' : '#E4EDF3' }}>
-          <div style={{ ...s.statValue, color: outOfStockItems.length > 0 ? '#ef4444' : '#0D1B2A' }}>{outOfStockItems.length}</div>
-          <div style={s.statLabel}>Out of Stock</div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mb-5">
+        <Stat value={baseProducts.length} label="Total SKUs" />
+        <Stat value={totalUnits} label="Units in Stock" />
+        <Stat value={`$${fmtMoney(totalValue)}`} label="Inventory Value" />
+        <Stat value={lowStockItems.length} label="Low Stock" tone={lowStockItems.length > 0 ? 'warn' : ''} />
+        <Stat value={outOfStockItems.length} label="Out of Stock" tone={outOfStockItems.length > 0 ? 'danger' : ''} />
       </div>
 
       {(lowStockItems.length > 0 || outOfStockItems.length > 0) && (
-        <div style={s.alertsRow}>
+        <div className="flex flex-col gap-2 mb-5">
           {outOfStockItems.map((p) => (
-            <div key={p.id} style={{ ...s.alert, backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }}>
+            <div key={p.id} className="px-4 py-2.5 rounded-opp border border-danger/30 bg-danger/10 text-danger text-[13px]">
               <strong>OUT OF STOCK:</strong> {p.name} {p.dosage}
             </div>
           ))}
           {lowStockItems.map((p) => (
-            <div key={p.id} style={{ ...s.alert, backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+            <div key={p.id} className="px-4 py-2.5 rounded-opp border border-warning/30 bg-warning/10 text-warning text-[13px]">
               <strong>LOW STOCK:</strong> {p.name} {p.dosage} — {edits[p.id]} units remaining
             </div>
           ))}
         </div>
       )}
 
-      <div style={s.tableWrap}>
-        <table style={s.table}>
-          <thead>
-            <tr style={s.thead}>
-              <th style={s.th}>Product</th>
-              <th style={s.th}>SKU</th>
-              <th style={s.th}>Category</th>
-              <th style={s.th}>Price</th>
-              <th style={{ ...s.th, textAlign: 'center' }}>Stock Qty</th>
-              <th style={{ ...s.th, textAlign: 'center' }}>Status</th>
-              <th style={{ ...s.th, textAlign: 'right' }}>Value</th>
+      <div className="card-premium overflow-hidden">
+        <table className="w-full border-collapse text-[13px]">
+          <thead className="bg-surfaceAlt">
+            <tr>
+              {['Product', 'SKU', 'Category', 'Price', 'Stock Qty', 'Status', 'Value'].map((h, i) => (
+                <th
+                  key={h}
+                  className={`px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute border-b border-line ${
+                    i >= 4 && i !== 6 ? 'text-center' : i === 6 ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {baseProducts.map((p, i) => {
+            {baseProducts.map((p) => {
               const qty = edits[p.id] ?? p.stock ?? 0;
               const status = qty === 0 ? 'out' : qty <= LOW_STOCK_THRESHOLD ? 'low' : 'in';
               return (
-                <tr key={p.id} style={{ ...s.tr, backgroundColor: i % 2 === 0 ? '#fff' : '#F9FBFC' }}>
-                  <td style={s.td}>
-                    <div style={{ fontWeight: 600 }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: '#9AAAB8', marginTop: 2 }}>{p.dosage}</div>
+                <tr key={p.id} className="border-t border-line">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-ink">{p.name}</div>
+                    <div className="opp-meta-mono mt-0.5">{p.dosage}</div>
                   </td>
-                  <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12, color: '#5A7D9A' }}>{p.sku}</td>
-                  <td style={s.td}><span style={s.chip}>{p.category}</span></td>
-                  <td style={{ ...s.td, fontWeight: 600 }}>${p.price.toFixed(2)}</td>
-                  <td style={{ ...s.td, textAlign: 'center' }}>
-                    <input type="number" min="0" value={qty} onChange={(e) => handleEdit(p.id, e.target.value)} style={s.qtyInput} />
+                  <td className="px-4 py-3 font-mono text-ink-soft">{p.sku}</td>
+                  <td className="px-4 py-3">
+                    <span className="opp-meta-mono bg-surfaceAlt px-2 py-0.5 rounded-full">{p.category}</span>
                   </td>
-                  <td style={{ ...s.td, textAlign: 'center' }}>
-                    <span style={{
-                      ...s.badge,
-                      backgroundColor: status === 'out' ? '#fee2e2' : status === 'low' ? '#fef3c7' : '#dcfce7',
-                      color: status === 'out' ? '#dc2626' : status === 'low' ? '#d97706' : '#16a34a',
-                    }}>
-                      {status === 'out' ? 'Out of Stock' : status === 'low' ? 'Low Stock' : 'In Stock'}
-                    </span>
+                  <td className="px-4 py-3 font-semibold text-ink">${p.price.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="number"
+                      min="0"
+                      value={qty}
+                      onChange={(e) => handleEdit(p.id, e.target.value)}
+                      className="w-20 px-2 py-1 border border-line rounded-opp bg-paper font-mono font-semibold text-center outline-none focus:border-ink"
+                    />
                   </td>
-                  <td style={{ ...s.td, textAlign: 'right', fontWeight: 600 }}>
-                    ${(qty * p.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <td className="px-4 py-3 text-center">
+                    <StatusBadge status={status} />
                   </td>
+                  <td className="px-4 py-3 text-right font-semibold text-ink">${fmtMoney(qty * p.price)}</td>
                 </tr>
               );
             })}
           </tbody>
           <tfoot>
-            <tr style={{ backgroundColor: '#F4F9FC', borderTop: '2px solid #E4EDF3' }}>
-              <td colSpan={4} style={{ ...s.td, fontWeight: 700 }}>TOTALS</td>
-              <td style={{ ...s.td, textAlign: 'center', fontWeight: 700 }}>{totalUnits} units</td>
-              <td style={s.td} />
-              <td style={{ ...s.td, textAlign: 'right', fontWeight: 700 }}>
-                ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <tr className="bg-surfaceAlt">
+              <td colSpan={4} className="px-4 py-3 font-bold font-mono text-[11px] tracking-[0.14em] uppercase text-ink">
+                TOTALS
               </td>
+              <td className="px-4 py-3 text-center font-bold text-ink">{totalUnits} units</td>
+              <td />
+              <td className="px-4 py-3 text-right font-bold text-ink">${fmtMoney(totalValue)}</td>
             </tr>
           </tfoot>
         </table>
@@ -163,23 +153,22 @@ export default function InventoryTab({ products, showSaveMsg }) {
   );
 }
 
-const f = "'Helvetica Neue', Arial, sans-serif";
-const s = {
-  sectionTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: '#0D1B2A', fontFamily: f },
-  saveBtn: { padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#00B4D8', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f },
-  statsRow: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 },
-  statCard: { flex: '1 1 140px', backgroundColor: '#fff', borderRadius: 12, border: '1px solid #E4EDF3', padding: '18px 20px' },
-  statValue: { fontSize: 26, fontWeight: 700, color: '#0D1B2A', fontFamily: f },
-  statLabel: { fontSize: 12, color: '#9AAAB8', marginTop: 2, fontFamily: f, textTransform: 'uppercase', letterSpacing: 0.5 },
-  alertsRow: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 },
-  alert: { padding: '10px 16px', borderRadius: 8, fontSize: 13, fontFamily: f },
-  tableWrap: { backgroundColor: '#fff', borderRadius: 12, border: '1px solid #E4EDF3', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  thead: { backgroundColor: '#F4F9FC' },
-  th: { padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#9AAAB8', fontFamily: f, letterSpacing: 0.8, textTransform: 'uppercase', borderBottom: '1px solid #E4EDF3' },
-  tr: { borderBottom: '1px solid #F0F4F8' },
-  td: { padding: '14px 16px', fontSize: 13, color: '#0D1B2A', fontFamily: f, verticalAlign: 'middle' },
-  chip: { fontSize: 11, fontWeight: 600, color: '#5A7D9A', background: '#EBF4FA', borderRadius: 20, padding: '2px 8px', fontFamily: f },
-  qtyInput: { width: 72, padding: '6px 10px', borderRadius: 6, border: '1px solid #E4EDF3', fontSize: 14, fontWeight: 600, textAlign: 'center', fontFamily: f, outline: 'none' },
-  badge: { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: '3px 10px', fontFamily: f },
-};
+function Stat({ value, label, tone = '' }) {
+  const toneClass = tone === 'warn' ? 'text-warning' : tone === 'danger' ? 'text-danger' : 'text-ink';
+  return (
+    <div className="card-premium p-5">
+      <div className={`font-display font-semibold tracking-display text-2xl ${toneClass}`}>{value}</div>
+      <div className="opp-meta-mono uppercase mt-1">{label}</div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const map = {
+    out: 'bg-danger/10 text-danger border-danger/30',
+    low: 'bg-warning/10 text-warning border-warning/30',
+    in: 'bg-success/10 text-success border-success/30',
+  };
+  const label = status === 'out' ? 'Out of Stock' : status === 'low' ? 'Low Stock' : 'In Stock';
+  return <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${map[status]}`}>{label}</span>;
+}

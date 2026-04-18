@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SEO from '../components/SEO';
+import { Icon } from '../components/Primitives';
 
 const faqs = [
   {
@@ -53,19 +54,17 @@ function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
     <div
-      className="card-premium p-5 mb-2 cursor-pointer transition-colors hover:border-brand-cyan/20"
+      className="card-premium p-5 mb-2 cursor-pointer transition-colors hover:border-ink"
       onClick={() => setOpen(!open)}
     >
       <div className="flex justify-between items-center gap-3">
-        <span className="text-sm font-semibold text-brand-cream">{q}</span>
-        <span className={`text-brand-cyan text-base shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
-          ▾
+        <span className="text-sm font-semibold text-ink">{q}</span>
+        <span className={`text-ink-soft shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          <Icon name="chevDown" size={16} />
         </span>
       </div>
       {open && (
-        <div className="text-sm text-brand-muted leading-relaxed mt-3 pt-3 border-t border-white/[0.06]">
-          {a}
-        </div>
+        <div className="text-sm text-ink-soft leading-relaxed mt-3 pt-3 border-t border-line">{a}</div>
       )}
     </div>
   );
@@ -73,22 +72,24 @@ function FAQItem({ q, a }) {
 
 export default function FAQ() {
   return (
-    <div className="min-h-[60vh]">
+    <div className="max-w-container mx-auto px-8 pt-14 pb-20">
       <SEO
         title="FAQ"
         description="Frequently asked questions about Optimized Performance research peptides — products, ordering, shipping, returns, and legal information."
         path="/faq"
       />
-      <div className="bg-brand-navy py-14 px-6 text-center">
-        <p className="text-[11px] font-semibold tracking-[0.2em] text-brand-cyan uppercase mb-2">Support</p>
-        <h1 className="text-3xl font-heading font-bold text-brand-cream mb-2">Frequently Asked Questions</h1>
-        <p className="text-sm text-brand-muted">Everything you need to know about ordering research peptides</p>
+      <div className="pb-8 border-b border-line">
+        <span className="opp-eyebrow">Support</span>
+        <h1 className="font-display font-semibold tracking-display text-[clamp(36px,5vw,64px)] leading-none mt-3 mb-2 text-ink">
+          Frequently asked questions
+        </h1>
+        <p className="text-ink-soft text-sm m-0">Everything you need to know about ordering research peptides.</p>
       </div>
 
-      <div className="max-w-narrow mx-auto px-6 py-12">
+      <div className="max-w-narrow mx-auto pt-12">
         {faqs.map((section) => (
-          <div key={section.category} className="mb-8">
-            <h2 className="text-base font-heading font-bold text-brand-cream mb-3 pb-2 border-b border-brand-cyan/20">
+          <div key={section.category} className="mb-10">
+            <h2 className="font-mono text-[11px] font-semibold tracking-[0.14em] uppercase text-ink-mute mb-4 pb-2 border-b border-line">
               {section.category}
             </h2>
             {section.items.map((item) => (
@@ -97,10 +98,14 @@ export default function FAQ() {
           </div>
         ))}
 
-        <div className="text-center card-premium p-8 mt-4">
-          <h3 className="text-base font-heading font-bold text-brand-cream mb-2">Still have questions?</h3>
-          <p className="text-sm text-brand-muted">
-            Reach out to us at <strong className="text-brand-cream">contact@optimizedperformanceinc.com</strong> and we will get back to you within 24 hours.
+        <div className="card-premium p-8 mt-4 text-center">
+          <h3 className="font-display font-semibold text-lg mb-2 text-ink">Still have questions?</h3>
+          <p className="text-sm text-ink-soft leading-relaxed m-0">
+            Reach out to us at{' '}
+            <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline font-semibold">
+              contact@optimizedperformanceinc.com
+            </a>
+            {' '}and we will get back to you within 24 hours.
           </p>
         </div>
       </div>

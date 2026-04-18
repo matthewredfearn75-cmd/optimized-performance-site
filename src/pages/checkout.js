@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useCart } from '../context/CartContext';
 import SEO from '../components/SEO';
+import { Vial, Icon } from '../components/Primitives';
 
 const MoonPayBuyWidget = dynamic(
   () => import('@moonpay/moonpay-react').then((mod) => mod.MoonPayBuyWidget),
@@ -41,8 +42,7 @@ export default function Checkout() {
         body: JSON.stringify({ code }),
       });
       if (res.ok) {
-        const data = await res.json();
-        setAffiliateApplied(data);
+        setAffiliateApplied(await res.json());
         setAffiliateError('');
       } else if (res.status === 404) {
         setAffiliateApplied(null);
@@ -63,11 +63,14 @@ export default function Checkout() {
 
   if (cartItems.length === 0 && !orderPlaced) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-5 text-center">
-        <h1 className="text-2xl font-heading font-bold text-brand-cream mb-3">Your cart is empty</h1>
-        <p className="text-brand-muted mb-6">Add some products before checking out.</p>
+      <div className="max-w-container mx-auto px-8 py-24 text-center">
+        <span className="opp-eyebrow">Checkout</span>
+        <h1 className="font-display font-semibold tracking-display text-4xl mt-3 mb-3 text-ink">
+          Nothing to check out.
+        </h1>
+        <p className="text-ink-soft mb-6">Your cart is empty. Add a product before proceeding.</p>
         <button className="btn-primary" onClick={() => router.push('/shop')}>
-          Browse Products
+          Browse catalog
         </button>
       </div>
     );
@@ -75,22 +78,21 @@ export default function Checkout() {
 
   if (orderPlaced) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-5 text-center">
-        <div className="mb-6">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
+      <div className="max-w-container mx-auto px-8 py-20 text-center">
+        <div className="w-[72px] h-[72px] rounded-full bg-success text-surface flex items-center justify-center mx-auto mb-6">
+          <Icon name="check" size={32} />
         </div>
-        <h1 className="text-2xl font-heading font-bold text-brand-cream mb-2">Payment Complete!</h1>
+        <h1 className="font-display font-semibold tracking-display text-4xl m-0 mb-2 text-ink">
+          Order placed.
+        </h1>
         {orderNumber && (
-          <p className="text-sm font-semibold text-brand-cyan mb-2">Order #{orderNumber}</p>
+          <p className="opp-meta-mono text-accent-strong mb-2">Order #{orderNumber}</p>
         )}
-        <p className="text-brand-muted mb-6">
-          Your order has been placed. You will receive a confirmation email shortly.
+        <p className="text-ink-soft max-w-md mx-auto mb-8">
+          Confirmation sent to your email. You&apos;ll receive a tracking number once it ships.
         </p>
         <button className="btn-primary" onClick={() => router.push('/')}>
-          Back to Home
+          Back to Home <Icon name="arrow" size={16} />
         </button>
       </div>
     );
@@ -102,39 +104,24 @@ export default function Checkout() {
       alert('Please fill in all shipping fields.');
       return;
     }
-
     setSubmitting(true);
     try {
       const res = await fetch('/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          email,
-          address,
-          city,
-          state,
-          zip,
+          name, email, address, city, state, zip,
           items: cartItems.map((item) => ({
-            id: item.id,
-            sku: item.sku,
-            name: item.name,
-            dosage: item.dosage,
-            price: item.price,
-            quantity: item.quantity,
+            id: item.id, sku: item.sku, name: item.name,
+            dosage: item.dosage, price: item.price, quantity: item.quantity,
           })),
           affiliateCode: affiliateApplied?.code || null,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create order');
-
       setOrderNumber(data.order_number);
-      // Use server-calculated total (prevents client tampering)
-      if (typeof data.total === 'number') {
-        setServerTotal(data.total);
-      }
+      if (typeof data.total === 'number') setServerTotal(data.total);
       setShowMoonPay(true);
     } catch (err) {
       alert('Something went wrong creating your order. Please try again.');
@@ -144,133 +131,166 @@ export default function Checkout() {
   };
 
   return (
-    <div className="max-w-[960px] mx-auto px-5 py-10 pb-16">
+    <div className="max-w-container mx-auto px-8 pt-14 pb-20">
       <SEO title="Checkout" description="Complete your order — secure payment via MoonPay." path="/checkout" />
-      <h1 className="text-2xl font-heading font-bold text-brand-cream mb-8">Checkout</h1>
 
-      <div className="flex gap-8 flex-wrap">
-        {/* Shipping form */}
-        <div className="flex-[1_1_400px] card-premium p-8">
-          <h2 className="text-lg font-heading font-bold text-brand-cream mb-5">Shipping Information</h2>
+      <div className="pb-8 border-b border-line">
+        <span className="opp-eyebrow">Checkout</span>
+        <h1 className="font-display font-semibold tracking-display text-[clamp(36px,5vw,64px)] leading-none mt-3 mb-2 text-ink">
+          Secure order
+        </h1>
+        <ol className="flex gap-8 list-none p-0 mt-6">
+          {['Details', 'Payment', 'Confirmation'].map((s, i) => {
+            const step = submitting || showMoonPay ? 2 : 1;
+            const isActive = step === i + 1;
+            return (
+              <li key={s} className={`flex items-center gap-2.5 text-sm ${isActive ? 'text-ink font-semibold' : 'text-ink-mute'}`}>
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center border opp-meta-mono text-[11px] ${
+                    isActive ? 'bg-ink text-paper border-ink' : 'border-line'
+                  }`}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span>{s}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      <div className="grid md:grid-cols-[1.6fr_1fr] gap-12 mt-10">
+        <div className="card-premium p-8 md:p-10">
+          <h2 className="font-display font-semibold tracking-display text-[28px] m-0 mb-2 text-ink">
+            Contact &amp; shipping
+          </h2>
+          <p className="text-ink-soft m-0 mb-7">
+            We use your email for order updates. Card payments are processed securely by MoonPay.
+          </p>
+
           <form onSubmit={handleCheckout}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-brand-platinum mb-1.5">Full Name</label>
-              <input className="input-field" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-brand-platinum mb-1.5">Email</label>
-              <input className="input-field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-brand-platinum mb-1.5">Address</label>
-              <input className="input-field" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St" />
-            </div>
-            <div className="flex gap-3 mb-4">
-              <div className="flex-[2]">
-                <label className="block text-sm font-medium text-brand-platinum mb-1.5">City</label>
-                <input className="input-field" type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-brand-platinum mb-1.5">State</label>
-                <input className="input-field" type="text" value={state} onChange={(e) => setState(e.target.value)} placeholder="CA" />
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-brand-platinum mb-1.5">ZIP</label>
-                <input className="input-field" type="text" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="90210" />
-              </div>
+            <Field label="Email">
+              <input
+                className="input-field" type="email" required
+                placeholder="researcher@lab.edu"
+                value={email} onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field label="Full Name">
+              <input className="input-field" required value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Address">
+              <input className="input-field" required placeholder="Street address" value={address} onChange={(e) => setAddress(e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4 mb-4">
+              <Field label="City"><input className="input-field" required value={city} onChange={(e) => setCity(e.target.value)} /></Field>
+              <Field label="State"><input className="input-field" required value={state} onChange={(e) => setState(e.target.value)} /></Field>
+              <Field label="ZIP"><input className="input-field" required value={zip} onChange={(e) => setZip(e.target.value)} /></Field>
             </div>
 
-            <div className="mb-4 mt-2">
-              <label className="block text-sm font-medium text-brand-platinum mb-1.5">Affiliate / Promo Code</label>
+            <Field label="Affiliate / Promo Code (optional)">
               <div className="flex gap-2">
                 <input
                   className="input-field flex-1 uppercase font-mono font-semibold"
-                  type="text"
-                  value={affiliateCode}
-                  onChange={(e) => { setAffiliateCode(e.target.value); setAffiliateApplied(null); setAffiliateError(''); }}
+                  type="text" value={affiliateCode}
+                  onChange={(e) => {
+                    setAffiliateCode(e.target.value);
+                    setAffiliateApplied(null);
+                    setAffiliateError('');
+                  }}
                   placeholder="Enter code"
                 />
-                <button
-                  type="button"
-                  onClick={applyAffiliateCode}
-                  className="btn-primary px-5 py-2.5 text-sm whitespace-nowrap"
-                >
+                <button type="button" onClick={applyAffiliateCode} className="btn-primary px-5 whitespace-nowrap">
                   Apply
                 </button>
               </div>
               {affiliateApplied && (
-                <p className="text-xs font-semibold text-emerald-400 mt-1.5">
+                <p className="opp-meta-mono text-success mt-1.5 m-0">
                   Code &ldquo;{affiliateApplied.code}&rdquo; applied — {affiliateApplied.discountPct}% off!
                 </p>
               )}
-              {affiliateError && (
-                <p className="text-xs font-semibold text-red-400 mt-1.5">{affiliateError}</p>
-              )}
-            </div>
+              {affiliateError && <p className="opp-meta-mono text-danger mt-1.5 m-0">{affiliateError}</p>}
+            </Field>
 
-            <button
-              type="submit"
-              className="w-full btn-primary py-4 text-base mt-2"
-              disabled={submitting}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle mr-2">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                <line x1="1" y1="10" x2="23" y2="10"/>
-              </svg>
-              {submitting ? 'Processing...' : `Pay $${discountedTotal.toFixed(2)} with Card`}
+            <label className="flex items-start gap-2.5 p-4 bg-surfaceAlt rounded-opp text-[13px] text-ink-soft leading-snug mt-4 mb-6">
+              <input type="checkbox" required className="mt-0.5" />
+              <span>
+                I acknowledge these products are for in-vitro research use only, I am 21+, and I am not
+                purchasing for human or animal consumption.
+              </span>
+            </label>
+
+            <button type="submit" className="btn-primary w-full py-4 text-base" disabled={submitting}>
+              <Icon name="card" size={18} />
+              {submitting ? 'Processing…' : `Pay $${discountedTotal.toFixed(2)} with Card`}
             </button>
-            <p className="text-[11px] text-brand-muted text-center mt-3 leading-relaxed">
-              Your card payment is securely converted to USDC via MoonPay.
-              <br />A ~4% processing fee applies.
+            <p className="opp-meta-mono text-center mt-3 leading-relaxed m-0">
+              Card payment is securely converted to USDC by MoonPay. A ~4% processing fee applies.
             </p>
           </form>
         </div>
 
-        {/* Order summary */}
-        <div className="flex-[0_1_320px] card-premium p-8 self-start">
-          <h2 className="text-lg font-heading font-bold text-brand-cream mb-5">Order Summary</h2>
-          <div className="mb-4">
+        <aside className="card-premium p-6 self-start md:sticky md:top-28">
+          <h3 className="font-mono text-[11px] font-semibold tracking-[0.14em] uppercase text-ink-mute m-0 mb-4">
+            Order summary
+          </h3>
+          <div className="flex flex-col gap-3 pb-4 border-b border-line">
             {cartItems.map((item) => (
-              <div key={item.id} className="flex justify-between items-center py-2 border-b border-white/[0.06]">
-                <div>
-                  <span className="text-sm font-semibold text-brand-cream">{item.name}</span>
-                  <span className="text-xs text-brand-muted"> - {item.dosage}</span>
-                  <span className="text-xs text-brand-muted"> x{item.quantity}</span>
+              <div key={item.id} className="flex gap-3 items-center">
+                <div className="w-11 h-15 bg-surfaceAlt border border-line rounded-opp flex items-center justify-center shrink-0">
+                  <Vial label={item.name} dosage={item.dosage} size={40} kit={item.isKit} />
                 </div>
-                <span className="text-sm font-semibold text-brand-cream">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold leading-snug text-ink">
+                    {item.name} · {item.dosage}
+                  </div>
+                  <div className="opp-meta-mono">
+                    {item.sku} × {item.quantity}
+                  </div>
+                </div>
+                <div className="text-[13px] font-semibold text-ink">
                   ${(item.price * item.quantity).toFixed(2)}
-                </span>
+                </div>
               </div>
             ))}
           </div>
-          <div className="h-px bg-white/10 my-3" />
-          {affiliateApplied && (
-            <>
-              <div className="flex justify-between py-1 mb-1">
-                <span className="text-sm text-brand-muted">Subtotal</span>
-                <span className="text-sm text-brand-muted">${cartTotal.toFixed(2)}</span>
+
+          <div className="flex flex-col gap-2 py-4">
+            <div className="flex justify-between text-[13px]">
+              <span className="text-ink-soft">Subtotal</span>
+              <span className="text-ink">${cartTotal.toFixed(2)}</span>
+            </div>
+            {affiliateApplied && (
+              <div className="flex justify-between text-[13px]">
+                <span className="text-success font-semibold">
+                  Discount ({affiliateApplied.discountPct}% — {affiliateApplied.code})
+                </span>
+                <span className="text-success font-semibold">-${discountAmount.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between py-1 mb-2">
-                <span className="text-sm font-semibold text-emerald-400">Discount ({affiliateApplied.discountPct}% — {affiliateApplied.code})</span>
-                <span className="text-sm font-semibold text-emerald-400">-${discountAmount.toFixed(2)}</span>
-              </div>
-            </>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-base font-semibold text-brand-cream">Total</span>
-            <span className="text-xl font-bold text-brand-cream font-heading">${discountedTotal.toFixed(2)}</span>
+            )}
+            <div className="flex justify-between pt-3 border-t border-line text-base font-bold text-ink">
+              <span>Total</span>
+              <span>${discountedTotal.toFixed(2)}</span>
+            </div>
           </div>
-          <div className="flex items-start gap-2 text-[11px] text-brand-muted mt-4 p-3 bg-brand-dark/50 rounded-lg leading-relaxed">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2" className="shrink-0 mt-0.5">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <span>All products are for research use only. Not for human consumption.</span>
+
+          <div className="flex flex-col gap-1.5 pt-4 border-t border-line font-mono text-[10px] text-ink-soft">
+            <div className="flex items-center gap-2">
+              <span className="text-accent-strong"><Icon name="lock" size={12} /></span>
+              <span>Encrypted checkout</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-accent-strong"><Icon name="doc" size={12} /></span>
+              <span>RUO research compounds</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-accent-strong"><Icon name="truck" size={12} /></span>
+              <span>Ships within 1 business day</span>
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
 
-      {/* MoonPay Widget */}
       <MoonPayBuyWidget
         variant="overlay"
         baseCurrencyCode="usd"
@@ -281,11 +301,21 @@ export default function Checkout() {
         onCloseOverlay={() => setShowMoonPay(false)}
         onTransactionCompleted={() => {
           setShowMoonPay(false);
-          // Affiliate stats are now updated server-side by the MoonPay webhook
           clearCart();
           setOrderPlaced(true);
         }}
       />
     </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="flex flex-col gap-1.5 mb-4">
+      <span className="font-mono text-[10px] font-medium tracking-[0.14em] uppercase text-ink-mute">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }

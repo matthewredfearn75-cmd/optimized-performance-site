@@ -4,6 +4,7 @@ import InventoryTab from './InventoryTab';
 import SupplyTab from './SupplyTab';
 import OrdersTab from './OrdersTab';
 import AffiliatesTab from './AffiliatesTab';
+import { Logo } from '../../components/Primitives';
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -52,22 +53,24 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <div style={styles.loginPage}>
-        <div style={styles.loginBox}>
-          <div style={styles.loginLogo}>OP</div>
-          <h2 style={styles.loginTitle}>Admin Access</h2>
-          <p style={styles.loginSub}>Optimized Performance Inc.</p>
-          <form onSubmit={handleLogin} style={styles.loginForm}>
+      <div className="min-h-screen bg-paper flex items-center justify-center p-8">
+        <div className="bg-surface border border-line rounded-opp-lg p-10 w-full max-w-sm text-center">
+          <div className="flex justify-center mb-4 text-ink">
+            <Logo size={36} />
+          </div>
+          <h2 className="font-display font-semibold tracking-display text-2xl m-0 mb-1 text-ink">Admin Access</h2>
+          <p className="opp-meta-mono uppercase m-0 mb-7">Optimized Performance Inc.</p>
+          <form onSubmit={handleLogin} className="flex flex-col gap-2.5">
             <input
               type="password"
               placeholder="Enter admin password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={styles.loginInput}
+              className="input-field"
               autoFocus
             />
-            {authError && <p style={styles.authError}>{authError}</p>}
-            <button type="submit" style={styles.loginBtn}>Sign In</button>
+            {authError && <p className="text-danger text-[13px] m-0">{authError}</p>}
+            <button type="submit" className="btn-primary">Sign In</button>
           </form>
         </div>
       </div>
@@ -82,31 +85,47 @@ export default function AdminPage() {
   ];
 
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <div style={styles.headerInner}>
-          <div>
-            <h1 style={styles.headerTitle}>Admin Dashboard</h1>
-            <p style={styles.headerSub}>Optimized Performance Inc.</p>
+    <div className="min-h-screen bg-paper">
+      <div className="bg-ink text-paper">
+        <div className="max-w-container mx-auto px-8 py-5 flex justify-between items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Logo size={28} />
+            <div>
+              <h1 className="font-display font-semibold tracking-display text-xl m-0">Admin Dashboard</h1>
+              <p className="font-mono text-[11px] text-paper/50 tracking-wider m-0 mt-0.5">
+                Optimized Performance Inc.
+              </p>
+            </div>
           </div>
-          <div style={styles.headerActions}>
+          <div className="flex items-center gap-3">
             {saveMsg && (
-              <span style={{ ...styles.saveMsg, color: saveMsg.includes('failed') ? '#ef4444' : '#22c55e' }}>
+              <span
+                className={`font-mono text-[12px] ${saveMsg.toLowerCase().includes('failed') ? 'text-danger' : 'text-accent'}`}
+              >
                 {saveMsg}
               </span>
             )}
-            <button onClick={logout} style={styles.logoutBtn}>Logout</button>
+            <button
+              onClick={logout}
+              className="px-4 py-2 border border-white/20 rounded-opp text-[13px] text-paper hover:bg-white/10 transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
 
-      <div style={styles.content}>
-        <div style={styles.tabRow}>
+      <div className="max-w-container mx-auto px-8 py-8">
+        <div className="flex gap-1 mb-8 border-b border-line">
           {tabs.map((t) => (
             <button
               key={t.id}
-              style={{ ...styles.tab, ...(activeTab === t.id ? styles.tabActive : {}) }}
               onClick={() => setActiveTab(t.id)}
+              className={`px-5 py-3 text-sm border-b-2 -mb-px transition-colors ${
+                activeTab === t.id
+                  ? 'text-ink border-ink font-semibold'
+                  : 'text-ink-soft border-transparent hover:text-ink'
+              }`}
             >
               {t.label}
             </button>
@@ -121,120 +140,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-const styles = {
-  loginPage: {
-    minHeight: '100vh',
-    backgroundColor: '#0D1B2A',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginBox: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: '48px 40px',
-    width: '100%',
-    maxWidth: 380,
-    textAlign: 'center',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-  },
-  loginLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#0D1B2A',
-    color: '#00B4D8',
-    fontSize: 20,
-    fontWeight: 800,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 16px',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  loginTitle: {
-    margin: '0 0 4px',
-    fontSize: 22,
-    fontWeight: 700,
-    color: '#0D1B2A',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  loginSub: {
-    margin: '0 0 28px',
-    fontSize: 13,
-    color: '#9AAAB8',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  loginForm: { display: 'flex', flexDirection: 'column', gap: 12 },
-  loginInput: {
-    padding: '12px 16px',
-    borderRadius: 8,
-    border: '1px solid #E4EDF3',
-    fontSize: 14,
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    outline: 'none',
-  },
-  authError: { margin: 0, color: '#ef4444', fontSize: 13, fontFamily: "'Helvetica Neue', Arial, sans-serif" },
-  loginBtn: {
-    padding: '12px',
-    borderRadius: 8,
-    border: 'none',
-    backgroundColor: '#00B4D8',
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  page: { minHeight: '100vh', backgroundColor: '#F7FAFB' },
-  header: { backgroundColor: '#0D1B2A', padding: '0 24px' },
-  headerInner: {
-    maxWidth: 1200,
-    margin: '0 auto',
-    padding: '20px 0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  headerTitle: { margin: 0, fontSize: 20, fontWeight: 700, color: '#fff', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
-  headerSub: { margin: '2px 0 0', fontSize: 12, color: '#7BA3C4', fontFamily: "'Helvetica Neue', Arial, sans-serif" },
-  headerActions: { display: 'flex', alignItems: 'center', gap: 10 },
-  saveMsg: { fontSize: 13, fontWeight: 600, fontFamily: "'Helvetica Neue', Arial, sans-serif" },
-  logoutBtn: {
-    padding: '9px 16px',
-    borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.2)',
-    backgroundColor: 'transparent',
-    color: '#fff',
-    fontSize: 13,
-    cursor: 'pointer',
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-  },
-  content: { maxWidth: 1200, margin: '0 auto', padding: '28px 24px' },
-  tabRow: {
-    display: 'flex',
-    gap: 4,
-    marginBottom: 24,
-    borderBottom: '2px solid #E4EDF3',
-  },
-  tab: {
-    padding: '10px 20px',
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    color: '#9AAAB8',
-    background: 'none',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    marginBottom: -2,
-    cursor: 'pointer',
-    letterSpacing: 0.3,
-  },
-  tabActive: {
-    color: '#00B4D8',
-    borderBottomColor: '#00B4D8',
-  },
-};

@@ -1,22 +1,23 @@
 import dynamic from 'next/dynamic';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { useRouter } from 'next/router';
+import { Inter_Tight, JetBrains_Mono } from 'next/font/google';
 import { CartProvider } from '../context/CartContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CartDrawer from '../components/CartDrawer';
 import '../styles/globals.css';
 
-const jakarta = Plus_Jakarta_Sans({
+const interTight = Inter_Tight({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter-tight',
   display: 'swap',
 });
 
-const inter = Inter({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  variable: '--font-inter',
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 });
 
@@ -26,21 +27,30 @@ const MoonPayProvider = dynamic(
 );
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter();
+  const isAdmin = router.pathname.startsWith('/admin');
+
   return (
     <MoonPayProvider
-      apiKey={process.env.NEXT_PUBLIC_MOONPAY_API_KEY}
+      apiKey={process.env.NEXT_PUBLIC_MOONPAY_API_KEY || 'pk_test_placeholder'}
       debug={process.env.NODE_ENV === 'development'}
     >
-    <CartProvider>
-      <div className={`${jakarta.variable} ${inter.variable} min-h-screen flex flex-col bg-brand-dark font-body`}>
-        <Header />
-        <CartDrawer />
-        <main className="flex-1">
-          <Component {...pageProps} />
-        </main>
-        <Footer />
-      </div>
-    </CartProvider>
+      <CartProvider>
+        <div className={`${interTight.variable} ${jetbrainsMono.variable} min-h-screen flex flex-col bg-paper text-ink font-body`}>
+          {isAdmin ? (
+            <Component {...pageProps} />
+          ) : (
+            <>
+              <Header />
+              <CartDrawer />
+              <main className="flex-1">
+                <Component {...pageProps} />
+              </main>
+              <Footer />
+            </>
+          )}
+        </div>
+      </CartProvider>
     </MoonPayProvider>
   );
 }

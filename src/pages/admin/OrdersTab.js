@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 const STATUSES = ['pending', 'packed', 'shipped', 'fulfilled'];
-const STATUS_LABELS = { pending: 'Pending', packed: 'Packed', shipped: 'Shipped', fulfilled: 'Fulfilled' };
-const STATUS_COLORS = {
-  pending: { bg: '#fef3c7', color: '#92400e' },
-  packed: { bg: '#dbeafe', color: '#1e40af' },
-  shipped: { bg: '#ede9fe', color: '#5b21b6' },
-  fulfilled: { bg: '#dcfce7', color: '#16a34a' },
+const STATUS_LABELS = {
+  pending: 'Pending',
+  packed: 'Packed',
+  shipped: 'Shipped',
+  fulfilled: 'Fulfilled',
+};
+const STATUS_CLASSES = {
+  pending: 'bg-warning/10 text-warning border-warning/30',
+  packed: 'bg-accent-soft text-accent-strong border-accent/30',
+  shipped: 'bg-ink/10 text-ink border-ink/30',
+  fulfilled: 'bg-success/10 text-success border-success/30',
 };
 
 export default function OrdersTab({ products, showSaveMsg }) {
@@ -31,7 +36,9 @@ export default function OrdersTab({ products, showSaveMsg }) {
     try {
       const res = await fetch('/api/admin/orders', { headers: authHeaders() });
       if (res.ok) setOrders(await res.json());
-    } catch { /* fail */ }
+    } catch {
+      /* fail */
+    }
     setLoading(false);
   }
 
@@ -44,7 +51,9 @@ export default function OrdersTab({ products, showSaveMsg }) {
       });
       await fetchOrders();
       showSaveMsg(`Order moved to ${STATUS_LABELS[newStatus]}.`);
-    } catch { /* fail */ }
+    } catch {
+      /* fail */
+    }
   }
 
   async function updateTracking(orderId, tracking) {
@@ -54,9 +63,10 @@ export default function OrdersTab({ products, showSaveMsg }) {
         headers: authHeaders(),
         body: JSON.stringify({ id: orderId, tracking }),
       });
-      // Optimistic update — update local state without refetch
-      setOrders(orders.map(o => o.id === orderId ? { ...o, tracking } : o));
-    } catch { /* fail */ }
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, tracking } : o)));
+    } catch {
+      /* fail */
+    }
   }
 
   async function deleteOrder(orderId) {
@@ -68,33 +78,24 @@ export default function OrdersTab({ products, showSaveMsg }) {
         body: JSON.stringify({ id: orderId }),
       });
       await fetchOrders();
-    } catch { /* fail */ }
+    } catch {
+      /* fail */
+    }
   }
 
   function exportCSV() {
-    const filtered = filter === 'all' ? orders : orders.filter(o => (o.fulfillment_status || 'pending') === filter);
+    const filtered = filter === 'all' ? orders : orders.filter((o) => (o.fulfillment_status || 'pending') === filter);
     const headers = ['Order #', 'Payment', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Subtotal', 'Discount', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
-    const rows = filtered.map(o => [
-      o.order_number,
-      o.payment_status || '',
-      STATUS_LABELS[o.fulfillment_status || 'pending'],
-      new Date(o.created_at).toLocaleDateString(),
-      o.customer_name,
-      o.customer_email,
-      o.shipping_address || '',
-      o.city || '',
-      o.state || '',
-      o.zip || '',
-      (o.items || []).map(i => `${i.name} x${i.quantity}`).join('; '),
-      Number(o.subtotal || 0).toFixed(2),
-      Number(o.discount || 0).toFixed(2),
-      Number(o.total || 0).toFixed(2),
-      o.affiliate_code || '',
-      o.affiliate_commission_pct || '',
-      o.tracking || '',
-      o.notes || '',
+    const rows = filtered.map((o) => [
+      o.order_number, o.payment_status || '', STATUS_LABELS[o.fulfillment_status || 'pending'],
+      new Date(o.created_at).toLocaleDateString(), o.customer_name, o.customer_email,
+      o.shipping_address || '', o.city || '', o.state || '', o.zip || '',
+      (o.items || []).map((i) => `${i.name} x${i.quantity}`).join('; '),
+      Number(o.subtotal || 0).toFixed(2), Number(o.discount || 0).toFixed(2),
+      Number(o.total || 0).toFixed(2), o.affiliate_code || '',
+      o.affiliate_commission_pct || '', o.tracking || '', o.notes || '',
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -104,189 +105,202 @@ export default function OrdersTab({ products, showSaveMsg }) {
     URL.revokeObjectURL(url);
   }
 
-  const filtered = filter === 'all' ? orders : orders.filter(o => (o.fulfillment_status || 'pending') === filter);
+  const filtered = filter === 'all' ? orders : orders.filter((o) => (o.fulfillment_status || 'pending') === filter);
   const counts = { all: orders.length };
-  STATUSES.forEach(st => { counts[st] = orders.filter(o => (o.fulfillment_status || 'pending') === st).length; });
+  STATUSES.forEach((st) => {
+    counts[st] = orders.filter((o) => (o.fulfillment_status || 'pending') === st).length;
+  });
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={s.sectionTitle}>Orders</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button style={s.exportBtn} onClick={fetchOrders}>Refresh</button>
-          <button style={s.exportBtn} onClick={exportCSV}>Export CSV</button>
+      <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
+        <h2 className="font-display font-semibold tracking-display text-xl m-0 text-ink">Orders</h2>
+        <div className="flex gap-2">
+          <button className="btn-outline text-xs px-4 py-2" onClick={fetchOrders}>Refresh</button>
+          <button className="btn-outline text-xs px-4 py-2" onClick={exportCSV}>Export CSV</button>
         </div>
       </div>
 
-      <div style={s.statsRow}>
-        {[
-          { key: 'pending', label: 'Pending' },
-          { key: 'packed', label: 'Packed' },
-          { key: 'shipped', label: 'Shipped' },
-          { key: 'fulfilled', label: 'Fulfilled' },
-        ].map(st => (
-          <div
-            key={st.key}
-            style={{ ...s.statCard, cursor: 'pointer', borderColor: filter === st.key ? STATUS_COLORS[st.key].color : '#E4EDF3' }}
-            onClick={() => setFilter(filter === st.key ? 'all' : st.key)}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
+        {STATUSES.map((st) => (
+          <button
+            key={st}
+            onClick={() => setFilter(filter === st ? 'all' : st)}
+            className={`card-premium p-5 text-left transition-colors ${
+              filter === st ? 'border-ink' : 'hover:border-ink'
+            }`}
           >
-            <div style={{ ...s.statValue, color: STATUS_COLORS[st.key].color }}>{counts[st.key]}</div>
-            <div style={s.statLabel}>{st.label}</div>
-          </div>
+            <div className="font-display font-semibold tracking-display text-2xl text-ink">{counts[st]}</div>
+            <div className="opp-meta-mono uppercase mt-1">{STATUS_LABELS[st]}</div>
+          </button>
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {['all', ...STATUSES].map(st => (
+      <div className="flex gap-1.5 mb-4 flex-wrap">
+        {['all', ...STATUSES].map((st) => (
           <button
             key={st}
             onClick={() => setFilter(st)}
-            style={{
-              ...s.pill,
-              backgroundColor: filter === st ? '#0D1B2A' : '#fff',
-              color: filter === st ? '#fff' : '#5A7D9A',
-              border: filter === st ? '1px solid #0D1B2A' : '1px solid #E4EDF3',
-            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              filter === st ? 'bg-ink text-paper border-ink' : 'bg-surface text-ink-soft border-line hover:border-ink'
+            }`}
           >
             {st === 'all' ? `All (${counts.all})` : `${STATUS_LABELS[st]} (${counts[st]})`}
           </button>
         ))}
       </div>
 
-      <div style={s.tableWrap}>
+      <div className="card-premium overflow-hidden">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ fontSize: 14, color: '#9AAAB8', margin: 0 }}>Loading...</p>
+          <div className="text-center py-12">
+            <p className="text-sm text-ink-mute m-0">Loading…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ fontSize: 15, color: '#5A7D9A', margin: 0 }}>No {filter === 'all' ? '' : filter + ' '}orders</p>
-            <p style={{ fontSize: 12, color: '#9AAAB8', marginTop: 4 }}>
-              Orders created through checkout will appear here.
-            </p>
+          <div className="text-center py-12">
+            <p className="text-[15px] text-ink-soft m-0">No {filter === 'all' ? '' : filter + ' '}orders</p>
+            <p className="opp-meta-mono mt-1 m-0">Orders created through checkout will appear here.</p>
           </div>
         ) : (
-          <table style={s.table}>
-            <thead>
-              <tr style={s.thead}>
-                <th style={s.th}>Order #</th>
-                <th style={s.th}>Date</th>
-                <th style={s.th}>Customer</th>
-                <th style={s.th}>Items</th>
-                <th style={{ ...s.th, textAlign: 'right' }}>Total</th>
-                <th style={{ ...s.th, textAlign: 'center' }}>Payment</th>
-                <th style={{ ...s.th, textAlign: 'center' }}>Status</th>
-                <th style={s.th}>Tracking</th>
-                <th style={s.th}>Actions</th>
+          <table className="w-full border-collapse text-[13px]">
+            <thead className="bg-surfaceAlt">
+              <tr>
+                {['Order #', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Status', 'Tracking', 'Actions'].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute border-b border-line"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((order, i) => {
+              {filtered.map((order) => {
                 const status = order.fulfillment_status || 'pending';
-                const sc = STATUS_COLORS[status];
                 const isExpanded = expandedId === order.id;
                 const nextStatus = STATUSES[STATUSES.indexOf(status) + 1];
                 const items = order.items || [];
 
                 return (
-                  <>
-                    <tr key={order.id} style={{ ...s.tr, backgroundColor: i % 2 === 0 ? '#fff' : '#F9FBFC', cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : order.id)}>
-                      <td style={{ ...s.td, fontFamily: 'monospace', fontWeight: 600 }}>{order.order_number}</td>
-                      <td style={s.td}>{new Date(order.created_at).toLocaleDateString()}</td>
-                      <td style={s.td}>
-                        <div style={{ fontWeight: 600 }}>{order.customer_name}</div>
-                        <div style={{ fontSize: 11, color: '#9AAAB8' }}>{order.customer_email}</div>
+                  <Fragment key={order.id}>
+                    <tr
+                      className="border-t border-line cursor-pointer hover:bg-surfaceAlt transition-colors"
+                      onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                    >
+                      <td className="px-4 py-3 font-mono font-semibold text-ink">{order.order_number}</td>
+                      <td className="px-4 py-3 text-ink-soft">{new Date(order.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-ink">{order.customer_name}</div>
+                        <div className="text-[11px] text-ink-mute">{order.customer_email}</div>
                       </td>
-                      <td style={s.td}>
+                      <td className="px-4 py-3 text-ink-soft">
                         {items.map((it, j) => (
-                          <div key={j} style={{ fontSize: 12 }}>{it.name} x{it.quantity}</div>
+                          <div key={j} className="text-xs">{it.name} x{it.quantity}</div>
                         ))}
                       </td>
-                      <td style={{ ...s.td, textAlign: 'right', fontWeight: 600 }}>${Number(order.total || 0).toFixed(2)}</td>
-                      <td style={{ ...s.td, textAlign: 'center', fontSize: 11, fontWeight: 600, color: order.payment_status === 'completed' ? '#16a34a' : '#d97706' }}>
-                        {order.payment_status === 'completed' ? 'Paid' : 'Pending'}
+                      <td className="px-4 py-3 text-right font-semibold text-ink">${Number(order.total || 0).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`opp-meta-mono font-semibold ${order.payment_status === 'completed' ? 'text-success' : 'text-warning'}`}>
+                          {order.payment_status === 'completed' ? 'Paid' : 'Pending'}
+                        </span>
                       </td>
-                      <td style={{ ...s.td, textAlign: 'center' }}>
-                        <span style={{ ...s.statusBadge, backgroundColor: sc.bg, color: sc.color }}>{STATUS_LABELS[status]}</span>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${STATUS_CLASSES[status]}`}>
+                          {STATUS_LABELS[status]}
+                        </span>
                       </td>
-                      <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 11, color: '#5A7D9A' }}>{order.tracking || '-'}</td>
-                      <td style={s.td} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <td className="px-4 py-3 font-mono text-xs text-ink-soft">{order.tracking || '—'}</td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1.5 flex-wrap">
                           {nextStatus && (
-                            <button style={{ ...s.moveBtn, backgroundColor: STATUS_COLORS[nextStatus].bg, color: STATUS_COLORS[nextStatus].color }} onClick={() => updateStatus(order.id, nextStatus)}>
+                            <button
+                              className={`text-[11px] font-semibold px-2.5 py-1 rounded-opp border ${STATUS_CLASSES[nextStatus]}`}
+                              onClick={() => updateStatus(order.id, nextStatus)}
+                            >
                               → {STATUS_LABELS[nextStatus]}
                             </button>
                           )}
-                          <button style={{ ...s.actionBtn, color: '#dc2626' }} onClick={() => deleteOrder(order.id)}>Del</button>
+                          <button
+                            className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-danger hover:bg-surfaceAlt"
+                            onClick={() => deleteOrder(order.id)}
+                          >
+                            Del
+                          </button>
                         </div>
                       </td>
                     </tr>
 
                     {isExpanded && (
-                      <tr key={order.id + '-detail'} style={{ backgroundColor: '#F7FAFB' }}>
-                        <td colSpan={9} style={{ padding: '16px 20px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                      <tr className="bg-surfaceAlt/60">
+                        <td colSpan={9} className="px-5 py-4">
+                          <div className="grid gap-4 md:grid-cols-4 grid-cols-1">
                             <div>
-                              <div style={s.detailLabel}>Shipping</div>
-                              <div style={s.detailValue}>
+                              <div className="opp-meta-mono uppercase mb-1">Shipping</div>
+                              <div className="text-[13px] text-ink leading-relaxed">
                                 {order.shipping_address}<br />
                                 {order.city}, {order.state} {order.zip}
                               </div>
                             </div>
                             <div>
-                              <div style={s.detailLabel}>Items Breakdown</div>
+                              <div className="opp-meta-mono uppercase mb-1">Items Breakdown</div>
                               {items.map((it, j) => (
-                                <div key={j} style={s.detailValue}>
-                                  {it.name} ({it.dosage}) — {it.quantity} x ${Number(it.price || 0).toFixed(2)} = ${(it.quantity * Number(it.price || 0)).toFixed(2)}
+                                <div key={j} className="text-[13px] text-ink-soft leading-relaxed">
+                                  {it.name} ({it.dosage}) — {it.quantity} × ${Number(it.price || 0).toFixed(2)} = ${(it.quantity * Number(it.price || 0)).toFixed(2)}
                                 </div>
                               ))}
                               {order.discount > 0 && (
-                                <div style={{ ...s.detailValue, color: '#16a34a', marginTop: 4 }}>Discount: -${Number(order.discount).toFixed(2)} ({order.affiliate_code})</div>
+                                <div className="text-[13px] text-success mt-1">
+                                  Discount: -${Number(order.discount).toFixed(2)} ({order.affiliate_code})
+                                </div>
                               )}
-                              <div style={{ ...s.detailValue, fontWeight: 700, marginTop: 4 }}>Total: ${Number(order.total || 0).toFixed(2)}</div>
+                              <div className="text-[13px] font-bold mt-1 text-ink">Total: ${Number(order.total || 0).toFixed(2)}</div>
                               {order.affiliate_code && (
-                                <div style={{ ...s.detailValue, color: '#d97706', marginTop: 4 }}>
-                                  Affiliate: {order.affiliate_code} ({order.affiliate_commission_pct}% = ${(Number(order.total || 0) * Number(order.affiliate_commission_pct || 0) / 100).toFixed(2)})
+                                <div className="text-[13px] text-warning mt-1">
+                                  Affiliate: {order.affiliate_code} ({order.affiliate_commission_pct}% = $
+                                  {(Number(order.total || 0) * Number(order.affiliate_commission_pct || 0) / 100).toFixed(2)})
                                 </div>
                               )}
                             </div>
                             <div>
-                              <div style={s.detailLabel}>Tracking</div>
+                              <div className="opp-meta-mono uppercase mb-1">Tracking</div>
                               <input
-                                style={s.input}
+                                className="input-field"
                                 defaultValue={order.tracking || ''}
-                                onBlur={e => updateTracking(order.id, e.target.value)}
+                                onBlur={(e) => updateTracking(order.id, e.target.value)}
                                 placeholder="Enter tracking #"
-                                onClick={e => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
                               />
                               {order.notes && (
                                 <>
-                                  <div style={{ ...s.detailLabel, marginTop: 12 }}>Notes</div>
-                                  <div style={s.detailValue}>{order.notes}</div>
+                                  <div className="opp-meta-mono uppercase mt-3 mb-1">Notes</div>
+                                  <div className="text-[13px] text-ink-soft">{order.notes}</div>
                                 </>
                               )}
                             </div>
                             <div>
-                              <div style={s.detailLabel}>Move to Status</div>
-                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                                {STATUSES.filter(st => st !== status).map(st => (
+                              <div className="opp-meta-mono uppercase mb-1">Move to Status</div>
+                              <div className="flex gap-1.5 flex-wrap mt-1">
+                                {STATUSES.filter((st) => st !== status).map((st) => (
                                   <button
                                     key={st}
-                                    style={{ ...s.moveBtn, backgroundColor: STATUS_COLORS[st].bg, color: STATUS_COLORS[st].color }}
-                                    onClick={e => { e.stopPropagation(); updateStatus(order.id, st); }}
+                                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-opp border ${STATUS_CLASSES[st]}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStatus(order.id, st);
+                                    }}
                                   >
                                     {STATUS_LABELS[st]}
                                   </button>
                                 ))}
                               </div>
-                              <div style={{ ...s.detailLabel, marginTop: 12 }}>Last Updated</div>
-                              <div style={s.detailValue}>{new Date(order.updated_at).toLocaleString()}</div>
+                              <div className="opp-meta-mono uppercase mt-3 mb-1">Last Updated</div>
+                              <div className="text-[13px] text-ink-soft">{new Date(order.updated_at).toLocaleString()}</div>
                             </div>
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -296,26 +310,3 @@ export default function OrdersTab({ products, showSaveMsg }) {
     </>
   );
 }
-
-const f = "'Helvetica Neue', Arial, sans-serif";
-const s = {
-  sectionTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: '#0D1B2A', fontFamily: f },
-  exportBtn: { padding: '9px 16px', borderRadius: 8, border: '1px solid #E4EDF3', backgroundColor: '#fff', color: '#0D1B2A', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f },
-  statsRow: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 },
-  statCard: { flex: '1 1 140px', backgroundColor: '#fff', borderRadius: 12, border: '1px solid #E4EDF3', padding: '18px 20px' },
-  statValue: { fontSize: 26, fontWeight: 700, fontFamily: f },
-  statLabel: { fontSize: 12, color: '#9AAAB8', marginTop: 2, fontFamily: f, textTransform: 'uppercase', letterSpacing: 0.5 },
-  pill: { padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: f },
-  input: { width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #E4EDF3', fontSize: 13, fontFamily: f, color: '#0D1B2A', outline: 'none', boxSizing: 'border-box' },
-  tableWrap: { backgroundColor: '#fff', borderRadius: 12, border: '1px solid #E4EDF3', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  thead: { backgroundColor: '#F4F9FC' },
-  th: { padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#9AAAB8', fontFamily: f, letterSpacing: 0.8, textTransform: 'uppercase', borderBottom: '1px solid #E4EDF3' },
-  tr: { borderBottom: '1px solid #F0F4F8' },
-  td: { padding: '14px 16px', fontSize: 13, color: '#0D1B2A', fontFamily: f, verticalAlign: 'middle' },
-  statusBadge: { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: '3px 10px', fontFamily: f },
-  moveBtn: { border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: f },
-  actionBtn: { background: 'none', border: '1px solid #E4EDF3', borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer', color: '#0077B6', fontFamily: f, fontWeight: 500 },
-  detailLabel: { fontSize: 11, fontWeight: 700, color: '#9AAAB8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, fontFamily: f },
-  detailValue: { fontSize: 13, color: '#0D1B2A', fontFamily: f, lineHeight: 1.5 },
-};
