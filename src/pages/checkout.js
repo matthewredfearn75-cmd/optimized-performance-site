@@ -26,6 +26,7 @@ export default function Checkout() {
   const [affiliateApplied, setAffiliateApplied] = useState(null);
   const [affiliateError, setAffiliateError] = useState('');
   const [serverTotal, setServerTotal] = useState(null);
+  const [researchAck, setResearchAck] = useState(false);
   const router = useRouter();
 
   async function applyAffiliateCode() {
@@ -104,6 +105,10 @@ export default function Checkout() {
       alert('Please fill in all shipping fields.');
       return;
     }
+    if (!researchAck) {
+      alert('You must acknowledge the research-use terms (21+ and non-consumption) to proceed.');
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/orders/create', {
@@ -116,6 +121,7 @@ export default function Checkout() {
             dosage: item.dosage, price: item.price, quantity: item.quantity,
           })),
           affiliateCode: affiliateApplied?.code || null,
+          researchUseAck: researchAck,
         }),
       });
       const data = await res.json();
@@ -213,14 +219,24 @@ export default function Checkout() {
             </Field>
 
             <label className="flex items-start gap-2.5 p-4 bg-surfaceAlt rounded-opp text-[13px] text-ink-soft leading-snug mt-4 mb-6">
-              <input type="checkbox" required className="mt-0.5" />
+              <input
+                type="checkbox"
+                required
+                className="mt-0.5"
+                checked={researchAck}
+                onChange={(e) => setResearchAck(e.target.checked)}
+              />
               <span>
                 I acknowledge these products are for in-vitro research use only, I am 21+, and I am not
                 purchasing for human or animal consumption.
               </span>
             </label>
 
-            <button type="submit" className="btn-primary w-full py-4 text-base" disabled={submitting}>
+            <button
+              type="submit"
+              className="btn-primary w-full py-4 text-base"
+              disabled={submitting || !researchAck}
+            >
               <Icon name="card" size={18} />
               {submitting ? 'Processing…' : `Pay $${discountedTotal.toFixed(2)} with Card`}
             </button>

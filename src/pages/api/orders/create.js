@@ -16,16 +16,24 @@ export default async function handler(req, res) {
   if (!rateLimit(req, { maxRequests: 10, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
 
   try {
-    if (!supabaseAdmin) {
-      return res.status(500).json({ error: 'Database not configured' })
-    }
-
-    const { name, email, address, city, state, zip, items, affiliateCode } = req.body
+    const { name, email, address, city, state, zip, items, affiliateCode, researchUseAck } = req.body
 
     if (!validateString(name) || !validateEmail(email) || !validateString(address) ||
         !validateString(city) || !validateString(state, { minLength: 1, maxLength: 50 }) || !validateZip(zip) ||
         !Array.isArray(items) || !items.length || items.length > 50) {
       return res.status(400).json({ error: 'Invalid or missing required fields' })
+    }
+
+    // Research-use acknowledgment (RUO + 21+ + no-consumption) must be explicitly confirmed.
+    // This is enforced server-side so the audit trail survives any client tampering —
+    // required for high-risk payment processor underwriting. Checked before DB so the
+    // server rejects bad requests without touching backend resources.
+    if (researchUseAck !== true) {
+      return res.status(400).json({ error: 'Research-use acknowledgment is required.' })
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Database not configured' })
     }
 
     // SERVER-SIDE CALCULATION: recalculate totals from cart items to prevent tampering

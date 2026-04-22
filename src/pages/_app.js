@@ -26,6 +26,8 @@ const MoonPayProvider = dynamic(
   { ssr: false }
 );
 
+const AgeGate = dynamic(() => import('../components/AgeGate'), { ssr: false });
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith('/admin');
@@ -47,6 +49,7 @@ export default function App({ Component, pageProps }) {
                 <Component {...pageProps} />
               </main>
               <Footer />
+              <AgeGate />
             </>
           )}
         </div>

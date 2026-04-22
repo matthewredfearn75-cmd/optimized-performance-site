@@ -1,10 +1,12 @@
 import SEO from '../components/SEO';
 
 export default function PrivacyPolicy() {
-  const lastUpdated = 'April 3, 2025';
+  const lastUpdated = 'April 22, 2026';
   const companyName = 'Optimized Performance Inc.';
   const contactEmail = 'contact@optimizedperformanceinc.com';
-  const siteUrl = 'optimizedperformanceinc.com';
+  const contactPhone = '+1 (831) 218-5147';
+  const contactPhoneHref = '+18312185147';
+  const siteUrl = 'optimizedperformancepeptides.com';
 
   return (
     <div className="max-w-container mx-auto px-8 pt-14 pb-20">
@@ -151,10 +153,11 @@ export default function PrivacyPolicy() {
             </p>
           </Section>
 
-          <Section title="10. Children's Privacy">
+          <Section title="10. Age Requirement & Minors' Privacy">
             <p className="text-sm text-ink-soft leading-relaxed">
-              Our Site is intended for adults aged 18 and older. We do not knowingly collect personal information
-              from individuals under 18. If you believe a minor has provided us with personal information, please contact us.
+              Our Site is intended solely for adults aged 21 and older. We do not knowingly collect personal
+              information from individuals under 21. If you believe a minor has provided us with personal
+              information, please contact us and we will delete it.
             </p>
           </Section>
 
@@ -185,8 +188,11 @@ export default function PrivacyPolicy() {
             </p>
             <div className="bg-surfaceAlt border border-line rounded-opp p-5">
               <p className="text-sm text-ink font-medium mb-1 m-0">{companyName}</p>
-              <p className="text-sm text-ink-soft m-0">
+              <p className="text-sm text-ink-soft mb-1 m-0">
                 Email: <a href={`mailto:${contactEmail}`} className="text-accent-strong hover:underline">{contactEmail}</a>
+              </p>
+              <p className="text-sm text-ink-soft m-0">
+                Phone: <a href={`tel:${contactPhoneHref}`} className="text-accent-strong hover:underline font-mono">{contactPhone}</a>
               </p>
             </div>
           </Section>

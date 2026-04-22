@@ -1,7 +1,7 @@
 import Head from 'next/head';
 
 const SITE_NAME = 'Optimized Performance Peptides';
-const SITE_URL = 'https://optimizedperformance.com';
+const SITE_URL = 'https://optimizedperformancepeptides.com';
 const DEFAULT_DESC = 'Research-grade peptides. 99% purity, third-party tested, US owned & operated. BPC-157, TB-500, GLP-3, Ipamorelin, HGH 191AA, and more. Ships within 24 hours.';
 
 export default function SEO({ title, description, path = '' }) {

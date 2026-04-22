@@ -17,9 +17,23 @@ export default function Footer() {
               </span>
             </span>
           </div>
-          <p className="text-ink-soft text-sm max-w-md leading-relaxed">
+          <p className="text-ink-soft text-sm max-w-md leading-relaxed mb-4">
             High-purity lyophilized research peptides. Third-party verified. Shipped from the United States.
           </p>
+          <div className="flex flex-col gap-1.5 text-sm">
+            <a
+              href="mailto:contact@optimizedperformanceinc.com"
+              className="text-ink-soft hover:text-accent-strong transition-colors"
+            >
+              contact@optimizedperformanceinc.com
+            </a>
+            <a
+              href="tel:+18312185147"
+              className="text-ink-soft hover:text-accent-strong transition-colors font-mono tracking-wide"
+            >
+              +1 (831) 218-5147
+            </a>
+          </div>
         </div>
 
         <FooterCol title="Shop">

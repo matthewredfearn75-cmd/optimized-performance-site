@@ -4,6 +4,8 @@ export default function TermsOfService() {
   const lastUpdated = 'April 4, 2026';
   const companyName = 'Optimized Performance Inc.';
   const contactEmail = 'contact@optimizedperformanceinc.com';
+  const contactPhone = '+1 (831) 218-5147';
+  const contactPhoneHref = '+18312185147';
   const siteUrl = 'optimizedperformancepeptides.com';
 
   return (
@@ -176,6 +178,9 @@ export default function TermsOfService() {
               <p className="text-sm text-ink font-medium mb-1 m-0">{companyName}</p>
               <p className="text-sm text-ink-soft mb-1 m-0">
                 Email: <a href={`mailto:${contactEmail}`} className="text-accent-strong hover:underline">{contactEmail}</a>
+              </p>
+              <p className="text-sm text-ink-soft mb-1 m-0">
+                Phone: <a href={`tel:${contactPhoneHref}`} className="text-accent-strong hover:underline font-mono">{contactPhone}</a>
               </p>
               <p className="text-sm text-ink-soft m-0">
                 Website: <a href={`https://${siteUrl}`} className="text-accent-strong hover:underline">{siteUrl}</a>

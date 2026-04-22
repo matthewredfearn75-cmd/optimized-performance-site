@@ -77,8 +77,8 @@ export default function ShippingReturns() {
           <Section title="Returns & Refunds">
             <p className="text-sm text-ink-soft leading-relaxed mb-3">Due to the nature of our products, we have a limited return policy:</p>
             <ul className="list-disc pl-5 space-y-1.5 text-sm text-ink-soft leading-relaxed">
-              <li><strong className="text-ink">Damaged or defective products:</strong> Contact us within 48 hours of delivery with photos.</li>
-              <li><strong className="text-ink">Incorrect items:</strong> Contact us within 48 hours. We will ship the correct item at no charge.</li>
+              <li><strong className="text-ink">Damaged or defective products:</strong> Contact us within 7 days of delivery with photos.</li>
+              <li><strong className="text-ink">Incorrect items:</strong> Contact us within 7 days of delivery. We will ship the correct item at no charge.</li>
               <li><strong className="text-ink">Missing packages:</strong> Contact us within 72 hours if tracking shows delivered but not received.</li>
               <li><strong className="text-ink">Change of mind:</strong> All sales are final once shipped.</li>
               <li><strong className="text-ink">Opened products:</strong> Cannot be returned for safety and integrity reasons.</li>
@@ -95,11 +95,22 @@ export default function ShippingReturns() {
 
           <Section title="Contact Us">
             <p className="text-sm text-ink-soft leading-relaxed mb-2">
-              For any shipping or returns questions, contact us at:<br />
-              <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline font-semibold">
-                contact@optimizedperformanceinc.com
-              </a>
+              For any shipping or returns questions, contact us:
             </p>
+            <div className="bg-surfaceAlt border border-line rounded-opp p-5 mb-3">
+              <p className="text-sm text-ink-soft mb-1 m-0">
+                Email:{' '}
+                <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline font-semibold">
+                  contact@optimizedperformanceinc.com
+                </a>
+              </p>
+              <p className="text-sm text-ink-soft m-0">
+                Phone:{' '}
+                <a href="tel:+18312185147" className="text-accent-strong hover:underline font-semibold font-mono">
+                  +1 (831) 218-5147
+                </a>
+              </p>
+            </div>
             <p className="text-sm text-ink-soft leading-relaxed">
               Please include your order number and a description of the issue. We aim to respond within 24 hours.
             </p>
