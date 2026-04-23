@@ -27,10 +27,13 @@ const MoonPayProvider = dynamic(
 );
 
 const AgeGate = dynamic(() => import('../components/AgeGate'), { ssr: false });
+const LaunchBanner = dynamic(() => import('../components/LaunchBanner'), { ssr: false });
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith('/admin');
+  const isCheckout = router.pathname.startsWith('/checkout');
+  const showLaunchBanner = !isAdmin && !isCheckout;
 
   return (
     <MoonPayProvider
@@ -43,6 +46,7 @@ export default function App({ Component, pageProps }) {
             <Component {...pageProps} />
           ) : (
             <>
+              {showLaunchBanner && <LaunchBanner />}
               <Header />
               <CartDrawer />
               <main className="flex-1">
