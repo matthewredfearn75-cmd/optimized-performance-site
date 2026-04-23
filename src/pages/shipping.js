@@ -100,8 +100,8 @@ export default function ShippingReturns() {
             <div className="bg-surfaceAlt border border-line rounded-opp p-5 mb-3">
               <p className="text-sm text-ink-soft mb-1 m-0">
                 Email:{' '}
-                <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline font-semibold">
-                  contact@optimizedperformanceinc.com
+                <a href="mailto:admin@optimizedperformancepeptides.com" className="text-accent-strong hover:underline font-semibold">
+                  admin@optimizedperformancepeptides.com
                 </a>
               </p>
               <p className="text-sm text-ink-soft m-0">

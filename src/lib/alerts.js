@@ -23,7 +23,7 @@ export async function sendEmailAlert(items, level) {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: toEmail }] }],
-        from: { email: process.env.FROM_EMAIL || 'alerts@optimizedperformanceinc.com' },
+        from: { email: process.env.FROM_EMAIL || 'alerts@optimizedperformancepeptides.com' },
         subject,
         content: [{ type: 'text/plain', value: body }],
       }),
@@ -92,7 +92,7 @@ export async function sendOrderConfirmation(order) {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: order.customer_email }] }],
-        from: { email: process.env.FROM_EMAIL || 'orders@optimizedperformanceinc.com' },
+        from: { email: process.env.FROM_EMAIL || 'orders@optimizedperformancepeptides.com' },
         subject: `Order Confirmed — ${order.order_number}`,
         content: [{ type: 'text/plain', value: body }],
       }),

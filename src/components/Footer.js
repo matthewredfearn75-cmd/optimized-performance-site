@@ -22,10 +22,10 @@ export default function Footer() {
           </p>
           <div className="flex flex-col gap-1.5 text-sm">
             <a
-              href="mailto:contact@optimizedperformanceinc.com"
+              href="mailto:admin@optimizedperformancepeptides.com"
               className="text-ink-soft hover:text-accent-strong transition-colors"
             >
-              contact@optimizedperformanceinc.com
+              admin@optimizedperformancepeptides.com
             </a>
             <a
               href="tel:+18312185147"

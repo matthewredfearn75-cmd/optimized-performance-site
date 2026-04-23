@@ -163,7 +163,7 @@ export default function ProductDetail({ product, stock, relatedProducts }) {
           <div className="mt-6 grid gap-3">
             <ComplianceRow icon="doc" title="Certificate of Analysis">
               Independent third-party HPLC verified. COA available per batch upon request
-              at <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline">contact@optimizedperformanceinc.com</a>.
+              at <a href="mailto:admin@optimizedperformancepeptides.com" className="text-accent-strong hover:underline">admin@optimizedperformancepeptides.com</a>.
             </ComplianceRow>
             <ComplianceRow icon="truck" title="Shipping">
               Ships within 1 business day in discrete, unbranded packaging.{' '}

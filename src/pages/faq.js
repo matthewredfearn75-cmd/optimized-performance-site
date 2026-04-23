@@ -37,7 +37,7 @@ const faqs = [
     items: [
       { q: 'What is your return policy?', a: 'Due to the nature of research compounds, all sales are final once shipped. We do offer replacements or refunds for damaged, defective, or incorrect items — contact us within 7 days of delivery.' },
       { q: 'What if my order arrives damaged?', a: 'Contact us within 7 days with photos of the damage. We will send a replacement or issue a full refund.' },
-      { q: 'How do I contact support?', a: 'Email us at contact@optimizedperformanceinc.com or call +1 (831) 218-5147 with your order number and a description of your issue. We respond within 24 hours.' },
+      { q: 'How do I contact support?', a: 'Email us at admin@optimizedperformancepeptides.com or call +1 (831) 218-5147 with your order number and a description of your issue. We respond within 24 hours.' },
     ],
   },
   {
@@ -102,8 +102,8 @@ export default function FAQ() {
           <h3 className="font-display font-semibold text-lg mb-2 text-ink">Still have questions?</h3>
           <p className="text-sm text-ink-soft leading-relaxed m-0">
             Reach out at{' '}
-            <a href="mailto:contact@optimizedperformanceinc.com" className="text-accent-strong hover:underline font-semibold">
-              contact@optimizedperformanceinc.com
+            <a href="mailto:admin@optimizedperformancepeptides.com" className="text-accent-strong hover:underline font-semibold">
+              admin@optimizedperformancepeptides.com
             </a>
             {' '}or{' '}
             <a href="tel:+18312185147" className="text-accent-strong hover:underline font-semibold font-mono">

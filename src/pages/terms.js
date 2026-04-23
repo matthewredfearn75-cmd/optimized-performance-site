@@ -3,7 +3,7 @@ import SEO from '../components/SEO';
 export default function TermsOfService() {
   const lastUpdated = 'April 4, 2026';
   const companyName = 'Optimized Performance Inc.';
-  const contactEmail = 'contact@optimizedperformanceinc.com';
+  const contactEmail = 'admin@optimizedperformancepeptides.com';
   const contactPhone = '+1 (831) 218-5147';
   const contactPhoneHref = '+18312185147';
   const siteUrl = 'optimizedperformancepeptides.com';
