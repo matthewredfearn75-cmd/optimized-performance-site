@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import products, { getEffectiveStock } from '../../data/products';
+import products, {
+  getEffectiveStock,
+  isRestrictedHidden,
+  getPrivateInquiryUrl,
+} from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import SEO from '../../components/SEO';
 import { Vial, Icon } from '../../components/Primitives';
@@ -9,7 +13,13 @@ import { supabaseAdmin } from '../../lib/supabase';
 
 const LOW_STOCK_THRESHOLD = 20;
 
-export default function ProductDetail({ product, stock, relatedProducts }) {
+export default function ProductDetail({
+  product,
+  stock,
+  relatedProducts,
+  privateInquiry,
+  inquiryUrl,
+}) {
   const router = useRouter();
   const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
@@ -27,6 +37,73 @@ export default function ProductDetail({ product, stock, relatedProducts }) {
         <button className="btn-primary" onClick={() => router.push('/shop')}>
           Browse catalog
         </button>
+      </div>
+    );
+  }
+
+  if (privateInquiry) {
+    return (
+      <div className="max-w-container mx-auto px-8 pt-10 pb-20">
+        <SEO
+          title={`${product.name} — Research Inquiry`}
+          description="Available for qualified researchers by direct inquiry."
+          path={`/products/${product.id}`}
+        />
+
+        <nav className="flex items-center gap-2 text-[12px] opp-meta-mono mb-6">
+          <Link href="/shop" className="text-ink-mute hover:text-ink-soft transition-colors">
+            Shop
+          </Link>
+          <span className="text-ink-mute">/</span>
+          <span className="text-ink-soft">Private Inquiry</span>
+        </nav>
+
+        <div className="max-w-narrow mx-auto">
+          <div className="card-premium p-10 md:p-14 text-center">
+            <span className="opp-eyebrow">Private Research Inquiry</span>
+            <h1 className="font-display font-semibold tracking-display text-[clamp(32px,4.5vw,56px)] leading-tight mt-3 mb-5 text-ink">
+              {product.name}
+              {product.dosage ? (
+                <span className="text-ink-soft font-normal"> · {product.dosage}</span>
+              ) : null}
+            </h1>
+            <p className="text-ink-soft leading-relaxed max-w-lg mx-auto mb-8">
+              This compound is available to qualified researchers through direct inquiry only.
+              Reach out via the channel below and we&apos;ll confirm availability, pricing,
+              and batch details.
+            </p>
+
+            <a
+              href={inquiryUrl}
+              className="btn-primary inline-flex items-center gap-2 px-6 py-3.5 text-base"
+              target={inquiryUrl.startsWith('http') ? '_blank' : undefined}
+              rel={inquiryUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+            >
+              <Icon name="doc" size={16} /> Contact for research inquiry
+            </a>
+
+            <div className="mt-10 pt-8 border-t border-line text-left">
+              <div className="opp-meta-mono text-ink-mute mb-3">What to include in your inquiry</div>
+              <ul className="list-disc pl-5 space-y-1.5 text-sm text-ink-soft leading-relaxed">
+                <li>Your research context (institution, project, end-use nature)</li>
+                <li>Quantity needed</li>
+                <li>Preferred contact method for follow-up</li>
+              </ul>
+            </div>
+
+            <p className="font-mono text-[11px] text-ink-mute leading-relaxed mt-10 m-0">
+              All compounds are supplied strictly for in-vitro research and laboratory use only.
+              Not drugs, foods, or cosmetics. Not intended for human or animal consumption.
+              Must be 21 years of age or older.
+            </p>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/shop" className="text-sm text-ink-soft hover:text-ink transition-colors">
+              ← Back to public catalog
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -260,6 +337,21 @@ export async function getServerSideProps(context) {
     return { notFound: true };
   }
 
+  // If this SKU is flagged `restricted` and the hide-restricted flag is on,
+  // serve the Private Inquiry view instead of the normal storefront detail.
+  // Keeps direct URLs and bookmarks working without exposing a Buy button.
+  if (product.restricted && isRestrictedHidden()) {
+    return {
+      props: {
+        product,
+        stock: 0,
+        relatedProducts: [],
+        privateInquiry: true,
+        inquiryUrl: getPrivateInquiryUrl(),
+      },
+    };
+  }
+
   // Resolve stock: try Supabase, fall back to static product.stock
   let inventory = {};
   try {
@@ -279,9 +371,16 @@ export async function getServerSideProps(context) {
     ? getEffectiveStock(product, inventory)
     : inventory[product.id] ?? product.stock ?? 0;
 
-  // Related products: up to 4 other products in same category
+  // Related products: up to 4 other products in same category, excluding
+  // any that are restricted while the hide-restricted flag is on.
+  const hideRestricted = isRestrictedHidden();
   const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter(
+      (p) =>
+        p.category === product.category &&
+        p.id !== product.id &&
+        !(hideRestricted && p.restricted)
+    )
     .slice(0, 4)
     .map((p) => ({
       id: p.id,
@@ -298,6 +397,8 @@ export async function getServerSideProps(context) {
       product,
       stock,
       relatedProducts,
+      privateInquiry: false,
+      inquiryUrl: null,
     },
   };
 }

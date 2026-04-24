@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import products from '../data/products';
+import { getVisibleProducts } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import SEO from '../components/SEO';
 import { Vial, Icon } from '../components/Primitives';
@@ -21,8 +21,29 @@ const TRUST = [
 
 export default function Home() {
   const router = useRouter();
-  const featured = products.filter((p) => p.badge === 'HERO').slice(0, 3);
-  const activeSkus = products.filter((p) => !p.isKit).length;
+  const visibleProducts = getVisibleProducts();
+  const featured = visibleProducts.filter((p) => p.badge === 'HERO').slice(0, 3);
+  const activeSkus = visibleProducts.filter((p) => !p.isKit).length;
+
+  // Hero showcase — prefer a visible HERO-badge SKU, fall back to first
+  // visible non-kit SKU. Keeps the homepage intact when restricted SKUs
+  // (and therefore all HERO-badge items) are hidden by the feature flag.
+  const heroShowcase =
+    visibleProducts.find((p) => p.badge === 'HERO') ||
+    visibleProducts.find((p) => !p.isKit) ||
+    visibleProducts[0];
+  const heroSubtitle =
+    heroShowcase?.category === 'GLPs'
+      ? 'Triple Agonist Peptide'
+      : heroShowcase?.category === 'GH Peptides'
+      ? 'Growth Hormone Secretagogue'
+      : heroShowcase?.category === 'Combos'
+      ? 'Peptide Stack'
+      : 'Research Peptide';
+  const heroClass =
+    heroShowcase?.category === 'GLPs'
+      ? 'GLPs / Triple Agonist'
+      : heroShowcase?.category || 'Research';
 
   return (
     <div className="max-w-container mx-auto px-8">
@@ -70,18 +91,28 @@ export default function Home() {
             </dl>
           </div>
 
-          <div className="flex flex-col items-center gap-8">
-            <div className="p-8 bg-surface border border-line rounded-opp-lg opp-grid-bg-lg">
-              <Vial label="GLP-3" dosage="10mg" size={280} purity={99.4} sku="OP-GLP3-10MG" subtitle="Triple Agonist Peptide" />
+          {heroShowcase && (
+            <div className="flex flex-col items-center gap-8">
+              <div className="p-8 bg-surface border border-line rounded-opp-lg opp-grid-bg-lg">
+                <Vial
+                  label={heroShowcase.name}
+                  dosage={heroShowcase.dosage}
+                  size={280}
+                  purity={heroShowcase.purity ?? 99}
+                  sku={heroShowcase.sku}
+                  kit={heroShowcase.isKit}
+                  subtitle={heroSubtitle}
+                />
+              </div>
+              <div className="w-full max-w-[320px] px-5 py-4 bg-surface border border-line rounded-opp flex flex-col gap-2 opp-meta-mono">
+                <SpecLine k="SKU" v={heroShowcase.sku} />
+                <SpecLine k="CLASS" v={heroClass} />
+                <SpecLine k="PURITY" v={`${heroShowcase.purity ?? 99}%`} />
+                <SpecLine k="FORMAT" v={`${heroShowcase.format || 'Lyophilized'} / ${heroShowcase.vialSize || '2mL Vial'}`} />
+                <SpecLine k="STORAGE" v="-20°C" />
+              </div>
             </div>
-            <div className="w-full max-w-[320px] px-5 py-4 bg-surface border border-line rounded-opp flex flex-col gap-2 opp-meta-mono">
-              <SpecLine k="SKU" v="OP-GLP3-10MG" />
-              <SpecLine k="CLASS" v="GLPs / Triple Agonist" />
-              <SpecLine k="PURITY" v="99.4%" />
-              <SpecLine k="FORMAT" v="Lyophilized / 2mL Vial" />
-              <SpecLine k="STORAGE" v="-20°C" />
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

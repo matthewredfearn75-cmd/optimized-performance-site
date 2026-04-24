@@ -12,6 +12,7 @@ const products = [
     inStock: true,
     badge: 'HERO',
     stock: 150,
+    restricted: true,
   },
   {
     id: 'glp3-20mg',
@@ -26,6 +27,7 @@ const products = [
     inStock: true,
     badge: 'HERO',
     stock: 100,
+    restricted: true,
   },
   {
     id: 'glp3-10mg-kit',
@@ -42,6 +44,7 @@ const products = [
     isKit: true,
     parentId: 'glp3-10mg',
     vialCount: 10,
+    restricted: true,
   },
   {
     id: 'glp3-20mg-kit',
@@ -58,6 +61,7 @@ const products = [
     isKit: true,
     parentId: 'glp3-20mg',
     vialCount: 10,
+    restricted: true,
   },
   {
     id: 'bpc-5mg',
@@ -252,6 +256,7 @@ const products = [
     inStock: true,
     badge: 'HERO',
     stock: 150,
+    restricted: true,
   },
   {
     id: 'mt2-5mg',
@@ -331,6 +336,32 @@ export function getInventoryDeductions(product, quantity = 1) {
     return [{ productId: product.parentId, vials: product.vialCount * quantity }];
   }
   return [{ productId: product.id, vials: quantity }];
+}
+
+// Feature flag: when NEXT_PUBLIC_HIDE_RESTRICTED is "true", products marked
+// `restricted: true` are hidden from the public catalog, homepage, category
+// counts, and related-products grids. Direct detail-page URLs render a
+// "Private Inquiry" view routing to the configured contact channel.
+//
+// This exists to handle category-level processor restrictions (e.g. GLP-1
+// analog crackdown). Default is OFF — flip the env var on Vercel and redeploy
+// to hide those SKUs. No code change needed to toggle.
+export function isRestrictedHidden() {
+  return process.env.NEXT_PUBLIC_HIDE_RESTRICTED === 'true';
+}
+
+export function getVisibleProducts() {
+  if (!isRestrictedHidden()) return products;
+  return products.filter((p) => !p.restricted);
+}
+
+// Default inquiry CTA when someone hits a hidden detail page. Prefer
+// NEXT_PUBLIC_PRIVATE_INQUIRY_URL (e.g. Telegram invite) when set.
+export function getPrivateInquiryUrl() {
+  return (
+    process.env.NEXT_PUBLIC_PRIVATE_INQUIRY_URL ||
+    'mailto:admin@optimizedperformancepeptides.com?subject=Research%20inquiry&body=I%27m%20interested%20in%20a%20research%20inquiry.'
+  );
 }
 
 export default products;

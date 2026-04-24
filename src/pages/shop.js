@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import ProductCard from '../components/ProductCard';
-import products, { getEffectiveStock } from '../data/products';
+import { getEffectiveStock, getVisibleProducts } from '../data/products';
 import { supabaseAdmin } from '../lib/supabase';
 import SEO from '../components/SEO';
 import { Icon } from '../components/Primitives';
 
-const CATEGORIES = ['All', 'GLPs', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
+const ALL_CATEGORIES = ['All', 'GLPs', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
 
 export default function Shop({ inventory }) {
   const router = useRouter();
@@ -15,12 +15,30 @@ export default function Shop({ inventory }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('default');
 
+  // Respect the restricted-SKU feature flag sitewide.
+  const visibleProducts = useMemo(() => getVisibleProducts(), []);
+
+  // Hide any category that has zero visible SKUs so the filter row doesn't
+  // show an empty tab (matters when restricted-hide is on and e.g. all GLPs
+  // are gated to private inquiry).
+  const categories = useMemo(() => {
+    return ALL_CATEGORIES.filter(
+      (c) => c === 'All' || visibleProducts.some((p) => p.category === c)
+    );
+  }, [visibleProducts]);
+
+  // If the URL pre-selects a category that is no longer visible, fall back to
+  // "All" so the page isn't left showing zero products.
+  useEffect(() => {
+    if (cat !== 'All' && !categories.includes(cat)) setCat('All');
+  }, [cat, categories]);
+
   useEffect(() => {
     if (typeof router.query.cat === 'string') setCat(router.query.cat);
   }, [router.query.cat]);
 
   const list = useMemo(() => {
-    let out = products.slice();
+    let out = visibleProducts.slice();
     if (cat !== 'All') out = out.filter((p) => p.category === cat);
     if (search) {
       const q = search.toLowerCase();
@@ -29,7 +47,7 @@ export default function Shop({ inventory }) {
     if (sort === 'price-asc') out.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') out.sort((a, b) => b.price - a.price);
     return out;
-  }, [cat, search, sort]);
+  }, [visibleProducts, cat, search, sort]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
 
@@ -64,8 +82,11 @@ export default function Shop({ inventory }) {
 
       <div className="flex flex-wrap justify-between gap-4 py-6">
         <div className="flex gap-2 flex-wrap">
-          {CATEGORIES.map((c) => {
-            const count = c === 'All' ? products.length : products.filter((p) => p.category === c).length;
+          {categories.map((c) => {
+            const count =
+              c === 'All'
+                ? visibleProducts.length
+                : visibleProducts.filter((p) => p.category === c).length;
             const active = cat === c;
             return (
               <button
