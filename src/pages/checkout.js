@@ -62,6 +62,27 @@ export default function Checkout() {
   const discountAmount = cartTotal * (discountPct / 100);
   const discountedTotal = cartTotal - discountAmount;
 
+  // Preorder summary — derive from cart line metadata persisted by addToCart
+  const preorderItems = cartItems.filter((item) => item.isPreorder);
+  const hasPreorders = preorderItems.length > 0;
+  const latestPreorderShipDate = (() => {
+    const dates = preorderItems
+      .map((item) => item.preorderShipDate)
+      .filter(Boolean);
+    if (dates.length === 0) return null;
+    const latest = dates.sort()[dates.length - 1];
+    try {
+      const [y, m, d] = latest.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return null;
+    }
+  })();
+
   if (cartItems.length === 0 && !orderPlaced) {
     return (
       <div className="max-w-container mx-auto px-8 py-24 text-center">
@@ -119,6 +140,8 @@ export default function Checkout() {
           items: cartItems.map((item) => ({
             id: item.id, sku: item.sku, name: item.name,
             dosage: item.dosage, price: item.price, quantity: item.quantity,
+            isPreorder: !!item.isPreorder,
+            preorderShipDate: item.isPreorder ? item.preorderShipDate || null : null,
           })),
           affiliateCode: affiliateApplied?.code || null,
           researchUseAck: researchAck,
@@ -164,6 +187,21 @@ export default function Checkout() {
           })}
         </ol>
       </div>
+
+      {hasPreorders && (
+        <div className="mt-8 p-5 bg-surfaceAlt border border-line rounded-opp-lg flex items-start gap-4">
+          <span className="opp-meta-mono text-accent-strong shrink-0 mt-0.5">PREORDER</span>
+          <div className="text-sm text-ink-soft leading-relaxed">
+            <strong className="text-ink">
+              This order contains {preorderItems.length === 1 ? '1 preorder item' : `${preorderItems.length} preorder items`}.
+            </strong>{' '}
+            {latestPreorderShipDate
+              ? `Preorder items will ship on or around ${latestPreorderShipDate}. Any in-stock items in this order ship within 1 business day; preorder items follow when inventory arrives.`
+              : 'Preorder items will ship when inventory arrives — we will email you with an updated estimated ship date. Any in-stock items in this order ship within 1 business day.'}{' '}
+            Your card is charged in full at checkout.
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-[1.6fr_1fr] gap-12 mt-10">
         <div className="card-premium p-8 md:p-10">

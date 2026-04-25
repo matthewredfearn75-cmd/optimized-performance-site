@@ -19,10 +19,45 @@ const STATUS_CLASSES = {
   cancelled: 'bg-danger/10 text-danger border-danger/30',
 };
 
+// Preorder helpers — operate on the per-item metadata persisted in the orders
+// table's items JSON column (set by /api/orders/create from the checkout flow).
+function hasPreorderItems(order) {
+  return (order?.items || []).some((item) => item?.isPreorder);
+}
+
+function getPreorderItems(order) {
+  return (order?.items || []).filter((item) => item?.isPreorder);
+}
+
+function latestPreorderShipDateISO(order) {
+  const dates = getPreorderItems(order)
+    .map((item) => item.preorderShipDate)
+    .filter(Boolean);
+  if (dates.length === 0) return null;
+  // ISO YYYY-MM-DD strings sort lexicographically as dates
+  return [...dates].sort()[dates.length - 1];
+}
+
+function formatShipDate(iso) {
+  if (!iso) return null;
+  try {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function OrdersTab({ products, showSaveMsg, token }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [preorderOnly, setPreorderOnly] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
@@ -88,14 +123,22 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
     }
   }
 
+  function applyFilters(list) {
+    let out = filter === 'all' ? list : list.filter((o) => (o.fulfillment_status || 'pending') === filter);
+    if (preorderOnly) out = out.filter(hasPreorderItems);
+    return out;
+  }
+
   function exportCSV() {
-    const filtered = filter === 'all' ? orders : orders.filter((o) => (o.fulfillment_status || 'pending') === filter);
-    const headers = ['Order #', 'Payment', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Subtotal', 'Discount', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
+    const filtered = applyFilters(orders);
+    const headers = ['Order #', 'Payment', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Has Preorder', 'Preorder Ship Date', 'Subtotal', 'Discount', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
     const rows = filtered.map((o) => [
       o.order_number, o.payment_status || '', STATUS_LABELS[o.fulfillment_status || 'pending'],
       new Date(o.created_at).toLocaleDateString(), o.customer_name, o.customer_email,
       o.shipping_address || '', o.city || '', o.state || '', o.zip || '',
-      (o.items || []).map((i) => `${i.name} x${i.quantity}`).join('; '),
+      (o.items || []).map((i) => `${i.name} x${i.quantity}${i.isPreorder ? ' [PREORDER]' : ''}`).join('; '),
+      hasPreorderItems(o) ? 'YES' : 'no',
+      latestPreorderShipDateISO(o) || '',
       Number(o.subtotal || 0).toFixed(2), Number(o.discount || 0).toFixed(2),
       Number(o.total || 0).toFixed(2), o.affiliate_code || '',
       o.affiliate_commission_pct || '', o.tracking || '', o.notes || '',
@@ -105,16 +148,17 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `orders-${filter}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `orders-${filter}${preorderOnly ? '-preorder' : ''}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  const filtered = filter === 'all' ? orders : orders.filter((o) => (o.fulfillment_status || 'pending') === filter);
+  const filtered = applyFilters(orders);
   const counts = { all: orders.length };
   ALL_STATUSES.forEach((st) => {
     counts[st] = orders.filter((o) => (o.fulfillment_status || 'pending') === st).length;
   });
+  const preorderCount = orders.filter(hasPreorderItems).length;
 
   return (
     <>
@@ -126,7 +170,7 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mb-5">
         {STATUSES.map((st) => (
           <button
             key={st}
@@ -139,9 +183,20 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
             <div className="opp-meta-mono uppercase mt-1">{STATUS_LABELS[st]}</div>
           </button>
         ))}
+        <button
+          onClick={() => setPreorderOnly(!preorderOnly)}
+          className={`card-premium p-5 text-left transition-colors ${
+            preorderOnly ? 'border-accent-strong' : 'hover:border-ink'
+          }`}
+        >
+          <div className="font-display font-semibold tracking-display text-2xl text-accent-strong">
+            {preorderCount}
+          </div>
+          <div className="opp-meta-mono uppercase mt-1">Preorder</div>
+        </button>
       </div>
 
-      <div className="flex gap-1.5 mb-4 flex-wrap">
+      <div className="flex gap-1.5 mb-4 flex-wrap items-center">
         {['all', ...ALL_STATUSES].map((st) => (
           <button
             key={st}
@@ -153,6 +208,17 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
             {st === 'all' ? `All (${counts.all})` : `${STATUS_LABELS[st]} (${counts[st]})`}
           </button>
         ))}
+        <span className="opp-meta-mono text-ink-mute mx-2">·</span>
+        <button
+          onClick={() => setPreorderOnly(!preorderOnly)}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            preorderOnly
+              ? 'bg-accent-strong text-surface border-accent-strong'
+              : 'bg-surface text-ink-soft border-line hover:border-ink'
+          }`}
+        >
+          {preorderOnly ? '✓ ' : ''}Preorder only ({preorderCount})
+        </button>
       </div>
 
       <div className="card-premium overflow-hidden">
@@ -185,14 +251,30 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                 const isExpanded = expandedId === order.id;
                 const nextStatus = STATUSES[STATUSES.indexOf(status) + 1];
                 const items = order.items || [];
+                const orderHasPreorders = hasPreorderItems(order);
+                const orderLatestShip = formatShipDate(latestPreorderShipDateISO(order));
 
                 return (
                   <Fragment key={order.id}>
                     <tr
-                      className="border-t border-line cursor-pointer hover:bg-surfaceAlt transition-colors"
+                      className={`border-t border-line cursor-pointer hover:bg-surfaceAlt transition-colors ${
+                        orderHasPreorders ? 'bg-accent-soft/30' : ''
+                      }`}
                       onClick={() => setExpandedId(isExpanded ? null : order.id)}
                     >
-                      <td className="px-4 py-3 font-mono font-semibold text-ink">{order.order_number}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-ink">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {order.order_number}
+                          {orderHasPreorders && (
+                            <span
+                              className="text-[10px] font-bold tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-accent-strong text-surface"
+                              title={orderLatestShip ? `Preorder · ships ~${orderLatestShip}` : 'Preorder · ship date TBD'}
+                            >
+                              PREORDER
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-ink-soft">{new Date(order.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-ink">{order.customer_name}</div>
@@ -200,7 +282,12 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                       </td>
                       <td className="px-4 py-3 text-ink-soft">
                         {items.map((it, j) => (
-                          <div key={j} className="text-xs">{it.name} x{it.quantity}</div>
+                          <div key={j} className="text-xs flex items-center gap-1.5">
+                            <span>{it.name} x{it.quantity}</span>
+                            {it.isPreorder && (
+                              <span className="text-[9px] font-semibold text-accent-strong tracking-wide">[PRE]</span>
+                            )}
+                          </div>
                         ))}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-ink">${Number(order.total || 0).toFixed(2)}</td>
@@ -253,6 +340,11 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                               {items.map((it, j) => (
                                 <div key={j} className="text-[13px] text-ink-soft leading-relaxed">
                                   {it.name} ({it.dosage}) — {it.quantity} × ${Number(it.price || 0).toFixed(2)} = ${(it.quantity * Number(it.price || 0)).toFixed(2)}
+                                  {it.isPreorder && (
+                                    <span className="ml-2 text-[11px] font-semibold text-accent-strong">
+                                      · PREORDER{it.preorderShipDate ? ` (ships ~${formatShipDate(it.preorderShipDate)})` : ' (ship date TBD)'}
+                                    </span>
+                                  )}
                                 </div>
                               ))}
                               {order.discount > 0 && (
@@ -261,6 +353,12 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                                 </div>
                               )}
                               <div className="text-[13px] font-bold mt-1 text-ink">Total: ${Number(order.total || 0).toFixed(2)}</div>
+                              {orderHasPreorders && (
+                                <div className="text-[13px] text-accent-strong mt-2 font-semibold">
+                                  Earliest fulfill: hold for preorder restock
+                                  {orderLatestShip ? ` · target ${orderLatestShip}` : ' · ship date TBD'}
+                                </div>
+                              )}
                               {order.affiliate_code && (
                                 <div className="text-[13px] text-warning mt-1">
                                   Affiliate: {order.affiliate_code} ({order.affiliate_commission_pct}% = $

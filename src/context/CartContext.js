@@ -6,7 +6,8 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addToCart = useCallback((product) => {
+  const addToCart = useCallback((product, options = {}) => {
+    const { isPreorder = false, preorderShipDate = null } = options;
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -16,7 +17,17 @@ export function CartProvider({ children }) {
             : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      // Persist preorder metadata on the cart line so the drawer + checkout
+      // can render ship-date messaging without re-querying inventory.
+      return [
+        ...prev,
+        {
+          ...product,
+          quantity: 1,
+          isPreorder,
+          preorderShipDate: isPreorder ? preorderShipDate : null,
+        },
+      ];
     });
     setIsCartOpen(true);
   }, []);

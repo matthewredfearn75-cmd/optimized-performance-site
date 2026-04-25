@@ -5,6 +5,8 @@ import products, {
   getEffectiveStock,
   isRestrictedHidden,
   getPrivateInquiryUrl,
+  isPreorderable,
+  formatPreorderShipDate,
 } from '../../data/products';
 import { useCart } from '../../context/CartContext';
 import SEO from '../../components/SEO';
@@ -108,14 +110,37 @@ export default function ProductDetail({
     );
   }
 
-  const status = stock === 0 ? 'out' : stock <= LOW_STOCK_THRESHOLD ? 'low' : 'in';
+  const preorderEnabled = stock === 0 && isPreorderable(product);
+  const shipDate = preorderEnabled ? formatPreorderShipDate(product) : null;
+
+  let status; // 'in' | 'low' | 'out' | 'preorder'
+  if (stock === 0) {
+    status = preorderEnabled ? 'preorder' : 'out';
+  } else if (stock <= LOW_STOCK_THRESHOLD) {
+    status = 'low';
+  } else {
+    status = 'in';
+  }
+
   const statusText =
-    status === 'out' ? 'Sold out' : status === 'low' ? `Only ${stock} left` : 'In stock';
+    status === 'out'
+      ? 'Sold out'
+      : status === 'low'
+      ? `Only ${stock} left`
+      : status === 'preorder'
+      ? shipDate
+        ? `Preorder · ships ~${shipDate}`
+        : 'Preorder · ship date TBD'
+      : 'In stock';
 
   const handleAdd = () => {
     if (status === 'out') return;
+    const options = {
+      isPreorder: status === 'preorder',
+      preorderShipDate: status === 'preorder' ? product.preorderShipDate || null : null,
+    };
     for (let i = 0; i < qty; i++) {
-      addToCart(product);
+      addToCart(product, options);
     }
   };
 
@@ -233,8 +258,21 @@ export default function ProductDetail({
             disabled={status === 'out'}
           >
             <Icon name="plus" size={16} />
-            {status === 'out' ? 'Sold out' : `Add to cart — $${(product.price * qty).toFixed(2)}`}
+            {status === 'out'
+              ? 'Sold out'
+              : status === 'preorder'
+              ? `Preorder — $${(product.price * qty).toFixed(2)}`
+              : `Add to cart — $${(product.price * qty).toFixed(2)}`}
           </button>
+
+          {status === 'preorder' && (
+            <div className="mt-3 p-3 bg-surfaceAlt border border-line rounded-opp text-[12px] text-ink-soft leading-snug">
+              <span className="opp-meta-mono text-accent-strong">PREORDER</span>{' '}
+              {shipDate
+                ? `This SKU is currently out of stock. Estimated ship date: ${shipDate}. Card is charged at checkout; the order ships when inventory arrives.`
+                : 'This SKU is currently out of stock. Ship date is being confirmed; we\'ll email you with an updated ETA. Card is charged at checkout; the order ships when inventory arrives.'}
+            </div>
+          )}
 
           {/* COA / compliance */}
           <div className="mt-6 grid gap-3">

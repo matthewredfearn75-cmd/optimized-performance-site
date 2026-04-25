@@ -364,4 +364,31 @@ export function getPrivateInquiryUrl() {
   );
 }
 
+// Preorder behavior — opt-out by default.
+// A product is preorderable when out of stock UNLESS `preorder: false` is
+// explicitly set on it. Set `preorderShipDate: 'YYYY-MM-DD'` per product to
+// show a specific estimated ship date; if absent, the UI falls back to "TBD".
+export function isPreorderable(product) {
+  return product?.preorder !== false;
+}
+
+// Format a preorder ship date for customer display, e.g. "Jun 15, 2026".
+// Returns null if no date is set so callers can render a TBD fallback.
+export function formatPreorderShipDate(product) {
+  if (!product?.preorderShipDate) return null;
+  try {
+    // Parse YYYY-MM-DD as a local date (avoid UTC shift on display)
+    const [y, m, d] = product.preorderShipDate.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default products;

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
+import { isPreorderable, formatPreorderShipDate } from '../data/products';
 import { Vial, Icon } from './Primitives';
 
 const LOW_STOCK_THRESHOLD = 20;
@@ -7,9 +8,28 @@ const LOW_STOCK_THRESHOLD = 20;
 export default function ProductCard({ product, qty }) {
   const { addToCart } = useCart();
   const stock = qty ?? product.stock ?? 0;
-  const status = stock === 0 ? 'out' : stock <= LOW_STOCK_THRESHOLD ? 'low' : 'in';
+  const preorderEnabled = stock === 0 && isPreorderable(product);
+  const shipDate = preorderEnabled ? formatPreorderShipDate(product) : null;
+
+  let status; // 'in' | 'low' | 'out' | 'preorder'
+  if (stock === 0) {
+    status = preorderEnabled ? 'preorder' : 'out';
+  } else if (stock <= LOW_STOCK_THRESHOLD) {
+    status = 'low';
+  } else {
+    status = 'in';
+  }
+
   const statusText =
-    status === 'out' ? 'Sold out' : status === 'low' ? `Only ${stock} left` : 'In stock';
+    status === 'out'
+      ? 'Sold out'
+      : status === 'low'
+      ? `Only ${stock} left`
+      : status === 'preorder'
+      ? shipDate
+        ? `Preorder · ships ~${shipDate}`
+        : 'Preorder · ship date TBD'
+      : 'In stock';
 
   const detailHref = `/products/${product.id}`;
 
@@ -64,14 +84,19 @@ export default function ProductCard({ product, qty }) {
             </div>
           </div>
           <button
-            className="btn-primary text-xs px-3 py-1.5"
+            className="btn-primary text-xs px-3 py-1.5 whitespace-nowrap"
             onClick={(e) => {
               e.stopPropagation();
-              if (status !== 'out') addToCart(product);
+              if (status !== 'out') {
+                addToCart(product, {
+                  isPreorder: status === 'preorder',
+                  preorderShipDate: status === 'preorder' ? product.preorderShipDate || null : null,
+                });
+              }
             }}
             disabled={status === 'out'}
           >
-            <Icon name="plus" size={14} /> Add
+            <Icon name="plus" size={14} /> {status === 'preorder' ? 'Preorder' : 'Add'}
           </button>
         </div>
       </div>

@@ -143,6 +143,8 @@
   .opp-stock--low .opp-stock-dot { background: var(--warning); }
   .opp-stock--out { color: var(--danger); }
   .opp-stock--out .opp-stock-dot { background: var(--danger); }
+  .opp-stock--preorder { color: var(--accentStrong); }
+  .opp-stock--preorder .opp-stock-dot { background: var(--accentStrong); }
 
   /* Ticker */
   .opp-ticker {

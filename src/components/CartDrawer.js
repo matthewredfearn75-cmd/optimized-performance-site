@@ -2,6 +2,21 @@ import { useRouter } from 'next/router';
 import { useCart } from '../context/CartContext';
 import { Vial, Icon } from './Primitives';
 
+function formatShipDate(iso) {
+  if (!iso) return null;
+  try {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function CartDrawer() {
   const router = useRouter();
   const {
@@ -70,6 +85,14 @@ export default function CartDrawer() {
                         <div className="opp-meta-mono">
                           {item.sku} · {item.dosage}
                         </div>
+                        {item.isPreorder && (
+                          <div className="opp-meta-mono text-accent-strong mt-1">
+                            PREORDER ·{' '}
+                            {formatShipDate(item.preorderShipDate)
+                              ? `ships ~${formatShipDate(item.preorderShipDate)}`
+                              : 'ship date TBD'}
+                          </div>
+                        )}
                       </div>
                       <button
                         className="w-7 h-7 rounded-opp flex items-center justify-center text-ink hover:bg-surfaceAlt transition-colors"
