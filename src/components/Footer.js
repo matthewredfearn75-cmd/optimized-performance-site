@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { Logo } from './Primitives';
 
+// Show the "Research inquiries" footer link only when explicitly enabled via
+// env var. Default is OFF — the /research-inquiries page is still reachable
+// by direct URL for affiliates and existing customers, but isn't surfaced in
+// site navigation. Flip NEXT_PUBLIC_SHOW_INQUIRY_SURFACE=true on Vercel and
+// redeploy to make the link visible in the footer.
+const SHOW_INQUIRY_SURFACE = process.env.NEXT_PUBLIC_SHOW_INQUIRY_SURFACE === 'true';
+
 export default function Footer() {
   return (
     <footer className="mt-20 border-t border-line bg-surfaceAlt">
@@ -46,6 +53,9 @@ export default function Footer() {
         <FooterCol title="Resources">
           <FooterLink href="/faq">FAQ</FooterLink>
           <FooterLink href="/shipping">Shipping &amp; Returns</FooterLink>
+          {SHOW_INQUIRY_SURFACE && (
+            <FooterLink href="/research-inquiries">Research inquiries</FooterLink>
+          )}
         </FooterCol>
 
         <FooterCol title="Company">
