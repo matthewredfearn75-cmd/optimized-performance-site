@@ -23,10 +23,11 @@ function bankfulBaseUrl() {
 }
 
 // HMAC-SHA256 over sorted-key concatenation of (key + value), excluding the
-// `signature` field and any empty/null/undefined values. Salt is the API Secret.
+// signature field (either case — outbound uses `signature`, inbound `SIGNATURE`)
+// and any empty/null/undefined values. Salt is the API Secret.
 function signBankfulPayload(payload, secret) {
   const keys = Object.keys(payload)
-    .filter((k) => k !== 'signature')
+    .filter((k) => k.toLowerCase() !== 'signature')
     .filter((k) => payload[k] !== undefined && payload[k] !== null && payload[k] !== '')
     .sort()
   const payloadString = keys.map((k) => `${k}${payload[k]}`).join('')
@@ -96,7 +97,7 @@ async function bankfulParseWebhook({ rawBody, headers }) {
   const data = {}
   for (const [k, v] of params) data[k] = v
 
-  const receivedSignature = data.signature
+  const receivedSignature = data.SIGNATURE || data.signature
   if (!receivedSignature) return { verified: false, reason: 'Missing signature in callback' }
 
   const expected = signBankfulPayload(data, apiPassword)
@@ -104,11 +105,14 @@ async function bankfulParseWebhook({ rawBody, headers }) {
     return { verified: false, reason: 'Signature mismatch' }
   }
 
-  const orderNumber = data.xtl_order_id
-  const txId = data.trans_request_id || data.trans_order_id || data.transaction_id || ''
-  const eventId = txId ? `${orderNumber}-${txId}` : `${orderNumber}-${receivedSignature.slice(0, 16)}`
+  const orderNumber = data.XTL_ORDER_ID || data.xtl_order_id
+  const txId =
+    data.TRANS_REQUEST_ID || data.trans_request_id ||
+    data.TRANS_ORDER_ID || data.trans_order_id ||
+    data.TRANS_RECORD_ID || data.trans_record_id || ''
+  const eventId = txId ? `${orderNumber}-${txId}` : `${orderNumber}-${String(receivedSignature).slice(0, 16)}`
 
-  const rawStatus = String(data.trans_status_name || data.status || '').toUpperCase()
+  const rawStatus = String(data.TRANS_STATUS_NAME || data.trans_status_name || data.STATUS || data.status || '').toUpperCase()
   let status = 'pending'
   if (['APPROVED', 'COMPLETED', 'SUCCESS', 'PAID'].includes(rawStatus)) status = 'completed'
   else if (['DECLINED', 'FAILED', 'ERROR', 'CANCELED', 'CANCELLED'].includes(rawStatus)) status = 'failed'
