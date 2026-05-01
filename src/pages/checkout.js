@@ -22,6 +22,7 @@ export default function Checkout() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submittingMethod, setSubmittingMethod] = useState(null);
   const [affiliateCode, setAffiliateCode] = useState('');
   const [affiliateApplied, setAffiliateApplied] = useState(null);
   const [affiliateError, setAffiliateError] = useState('');
@@ -120,8 +121,7 @@ export default function Checkout() {
     );
   }
 
-  const handleCheckout = async (e) => {
-    e.preventDefault();
+  const handleCheckout = async (paymentMethod) => {
     if (!email || !name || !address || !city || !state || !zip) {
       alert('Please fill in all shipping fields.');
       return;
@@ -131,6 +131,7 @@ export default function Checkout() {
       return;
     }
     setSubmitting(true);
+    setSubmittingMethod(paymentMethod);
     try {
       const res = await fetch('/api/orders/create', {
         method: 'POST',
@@ -145,18 +146,25 @@ export default function Checkout() {
           })),
           affiliateCode: affiliateApplied?.code || null,
           researchUseAck: researchAck,
+          paymentMethod,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create order');
       setOrderNumber(data.order_number);
       if (typeof data.total === 'number') setServerTotal(data.total);
+      if (paymentMethod === 'card') {
+        if (!data.redirect_url) throw new Error('Payment processor returned no redirect URL');
+        window.location.href = data.redirect_url;
+        return;
+      }
       setShowMoonPay(true);
     } catch (err) {
-      alert('Something went wrong creating your order. Please try again.');
+      alert(err.message || 'Something went wrong creating your order. Please try again.');
       console.error(err);
     }
     setSubmitting(false);
+    setSubmittingMethod(null);
   };
 
   return (
@@ -212,7 +220,7 @@ export default function Checkout() {
             We use your email for order updates. Card payments are processed securely by MoonPay.
           </p>
 
-          <form onSubmit={handleCheckout}>
+          <form onSubmit={(e) => { e.preventDefault(); handleCheckout('card'); }}>
             <Field label="Email">
               <input
                 className="input-field" type="email" required
@@ -270,16 +278,30 @@ export default function Checkout() {
               </span>
             </label>
 
-            <button
-              type="submit"
-              className="btn-primary w-full py-4 text-base"
-              disabled={submitting || !researchAck}
-            >
-              <Icon name="card" size={18} />
-              {submitting ? 'Processing…' : `Pay $${discountedTotal.toFixed(2)} with Card`}
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="submit"
+                className="btn-primary w-full py-4 text-base"
+                disabled={submitting || !researchAck}
+              >
+                <Icon name="card" size={18} />
+                {submitting && submittingMethod === 'card'
+                  ? 'Processing…'
+                  : `Pay $${discountedTotal.toFixed(2)} with card`}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCheckout('crypto')}
+                className="btn-outline w-full py-4 text-base"
+                disabled={submitting || !researchAck}
+              >
+                {submitting && submittingMethod === 'crypto'
+                  ? 'Processing…'
+                  : `Pay $${(discountedTotal * 1.04).toFixed(2)} with crypto`}
+              </button>
+            </div>
             <p className="opp-meta-mono text-center mt-3 leading-relaxed m-0">
-              Card payment is securely converted to USDC by MoonPay. A ~4% processing fee applies.
+              Card processed by Bankful. Crypto via MoonPay (≈4% processing fee added).
             </p>
           </form>
         </div>

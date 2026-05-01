@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../../lib/supabase'
 import { validateOrigin, rateLimit, validateEmail, validateString, validateZip } from '../../../lib/security'
+import { createCheckoutSession } from '../../../lib/payments/cardProcessor'
 
 function generateOrderNumber() {
   const date = new Date()
@@ -10,18 +11,24 @@ function generateOrderNumber() {
   return `OP-${y}${m}${d}-${rand}`
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://optimizedperformancepeptides.com'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
   if (!rateLimit(req, { maxRequests: 10, windowMs: 60000 })) return res.status(429).json({ error: 'Too many requests' })
 
   try {
-    const { name, email, address, city, state, zip, items, affiliateCode, researchUseAck } = req.body
+    const { name, email, address, city, state, zip, items, affiliateCode, researchUseAck, paymentMethod } = req.body
 
     if (!validateString(name) || !validateEmail(email) || !validateString(address) ||
         !validateString(city) || !validateString(state, { minLength: 1, maxLength: 50 }) || !validateZip(zip) ||
         !Array.isArray(items) || !items.length || items.length > 50) {
       return res.status(400).json({ error: 'Invalid or missing required fields' })
+    }
+
+    if (paymentMethod !== 'card' && paymentMethod !== 'crypto') {
+      return res.status(400).json({ error: 'Invalid paymentMethod (must be "card" or "crypto")' })
     }
 
     // Research-use acknowledgment (RUO + 21+ + no-consumption) must be explicitly confirmed.
@@ -70,8 +77,11 @@ export default async function handler(req, res) {
     }
 
     const discountedTotal = subtotal - discount
-    // Add 4% MoonPay processing fee (matches client display)
-    const total = Math.ceil(discountedTotal * 1.04 * 100) / 100
+    // Crypto path adds 4% to cover MoonPay processing; card path eats the
+    // processor fee from margin.
+    const total = paymentMethod === 'crypto'
+      ? Math.ceil(discountedTotal * 1.04 * 100) / 100
+      : Math.round(discountedTotal * 100) / 100
 
     if (total <= 0 || total > 50000) {
       return res.status(400).json({ error: 'Invalid order total' })
@@ -108,6 +118,41 @@ export default async function handler(req, res) {
     if (error) {
       console.error('Order creation failed:', error)
       return res.status(500).json({ error: error.message })
+    }
+
+    if (paymentMethod === 'card') {
+      const [firstName, ...lastParts] = String(name).trim().split(/\s+/)
+      const lastName = lastParts.join(' ')
+      try {
+        const { redirectUrl } = await createCheckoutSession({
+          orderNumber,
+          amountCents: Math.round(total * 100),
+          currency: 'USD',
+          customer: {
+            email,
+            firstName,
+            lastName,
+            address,
+            city,
+            state,
+            zip,
+            country: 'US',
+          },
+          returnUrl: `${SITE_URL}/checkout/success?order=${encodeURIComponent(orderNumber)}`,
+          cancelUrl: `${SITE_URL}/checkout/cancel?order=${encodeURIComponent(orderNumber)}`,
+          callbackUrl: `${SITE_URL}/api/webhooks/bankful`,
+        })
+        return res.status(200).json({
+          order_number: orderNumber,
+          order_id: order.id,
+          total,
+          discount,
+          redirect_url: redirectUrl,
+        })
+      } catch (sessionErr) {
+        console.error('[orders/create] Card checkout session failed:', sessionErr.message)
+        return res.status(502).json({ error: 'Payment processor unavailable. Please try again or use crypto checkout.' })
+      }
     }
 
     return res.status(200).json({
