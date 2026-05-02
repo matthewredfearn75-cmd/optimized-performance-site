@@ -6,6 +6,7 @@ export default function AffiliatesTab({ showSaveMsg, token }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm());
+  const [passwordModal, setPasswordModal] = useState(null); // { affiliate, password, login_url } | null
 
   useEffect(() => {
     fetchAffiliates();
@@ -93,6 +94,33 @@ export default function AffiliatesTab({ showSaveMsg, token }) {
     } catch { /* fail */ }
   }
 
+  async function handleSetPassword(aff) {
+    const isReset = !!aff.login_password_hash;
+    const verb = isReset ? 'Reset' : 'Set';
+    if (!window.confirm(`${verb} login password for ${aff.name}? This will ${isReset ? 'invalidate the current password and ' : ''}generate a new one.`)) return;
+    try {
+      const res = await fetch('/api/admin/affiliate-password', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ id: aff.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showSaveMsg(err.error || 'Failed to set password');
+        return;
+      }
+      const data = await res.json();
+      setPasswordModal(data);
+      await fetchAffiliates();
+    } catch {
+      showSaveMsg('Network error setting password');
+    }
+  }
+
+  function copyToClipboard(s) {
+    navigator.clipboard.writeText(s).then(() => showSaveMsg('Copied to clipboard'));
+  }
+
   function exportCSV() {
     const headers = ['Name', 'Email', 'Code', 'Discount %', 'Commission %', 'Active', 'Total Sales', 'Total Revenue', 'Total Commission', 'Created'];
     const rows = affiliates.map((a) => [
@@ -116,6 +144,47 @@ export default function AffiliatesTab({ showSaveMsg, token }) {
 
   return (
     <>
+      {passwordModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+          <div className="card-premium p-6 max-w-md w-full">
+            <h3 className="font-display font-semibold text-lg text-ink mb-2">Login credentials</h3>
+            <p className="text-sm text-ink-soft mb-4">
+              Show this to <strong>{passwordModal.affiliate.name}</strong> ({passwordModal.affiliate.email}) once. Closing this dialog without copying = generate a new one.
+            </p>
+            <div className="bg-surfaceAlt rounded-opp p-4 mb-4 space-y-3">
+              <div>
+                <div className="opp-meta-mono uppercase mb-1">Email (username)</div>
+                <div className="flex gap-2 items-center">
+                  <code className="font-mono text-sm flex-1 truncate">{passwordModal.affiliate.email}</code>
+                  <button className="text-[11px] btn-outline px-2 py-1" onClick={() => copyToClipboard(passwordModal.affiliate.email)}>Copy</button>
+                </div>
+              </div>
+              <div>
+                <div className="opp-meta-mono uppercase mb-1">Password</div>
+                <div className="flex gap-2 items-center">
+                  <code className="font-mono text-base font-bold text-accent-strong flex-1">{passwordModal.password}</code>
+                  <button className="text-[11px] btn-outline px-2 py-1" onClick={() => copyToClipboard(passwordModal.password)}>Copy</button>
+                </div>
+              </div>
+              <div>
+                <div className="opp-meta-mono uppercase mb-1">Login URL</div>
+                <div className="flex gap-2 items-center">
+                  <code className="font-mono text-xs flex-1 truncate">{passwordModal.login_url}</code>
+                  <button className="text-[11px] btn-outline px-2 py-1" onClick={() => copyToClipboard(passwordModal.login_url)}>Copy</button>
+                </div>
+              </div>
+            </div>
+            <button
+              className="btn-primary w-full"
+              onClick={() => copyToClipboard(`Login at ${passwordModal.login_url}\nEmail: ${passwordModal.affiliate.email}\nPassword: ${passwordModal.password}`)}
+            >
+              Copy all (paste-ready handoff)
+            </button>
+            <button className="btn-outline w-full mt-2" onClick={() => setPasswordModal(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
         <div>
           <h2 className="font-display font-semibold tracking-display text-xl m-0 text-ink">Affiliates</h2>
@@ -218,8 +287,15 @@ export default function AffiliatesTab({ showSaveMsg, token }) {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       <button className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-accent-strong hover:bg-surfaceAlt" onClick={() => handleEdit(aff)}>Edit</button>
+                      <button
+                        className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-ink hover:bg-surfaceAlt"
+                        onClick={() => handleSetPassword(aff)}
+                        title={aff.login_password_hash ? 'Reset login password' : 'Set login password'}
+                      >
+                        {aff.login_password_hash ? 'Reset PW' : 'Set PW'}
+                      </button>
                       <button className="text-[11px] px-2.5 py-1 rounded-opp border border-line text-danger hover:bg-surfaceAlt" onClick={() => handleDelete(aff.id)}>Del</button>
                     </div>
                   </td>

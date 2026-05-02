@@ -3,6 +3,10 @@
     {
       "path": "/api/inventory/check-stock",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/affiliate-monthly",
+      "schedule": "0 9 1 * *"
     }
   ]
 }

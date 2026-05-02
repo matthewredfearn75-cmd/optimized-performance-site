@@ -61,6 +61,7 @@ export default function Footer() {
         <FooterCol title="Company">
           <FooterLink href="/privacy">Privacy Policy</FooterLink>
           <FooterLink href="/terms">Terms of Service</FooterLink>
+          <FooterLink href="/affiliate/login">Affiliate Login</FooterLink>
         </FooterCol>
       </div>
 
