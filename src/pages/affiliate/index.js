@@ -130,7 +130,7 @@ export default function AffiliateDashboard() {
       {/* YTD top row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-4">
         <Stat label="YTD volume" value={fmtUsd(stats.ytd_volume)} sub={`${stats.ytd_orders} orders`} />
-        <Stat label="YTD commission est." value={fmtUsd(stats.ytd_estimated_commission)} tone="success" sub="at current rate" />
+        <Stat label="YTD commission" value={fmtUsd(stats.ytd_commission)} tone="success" />
         <Stat label="YTD payouts processed" value={fmtUsd(stats.ytd_payouts_total)} sub="overrides + royalties" />
         <Stat label="Pending payouts" value={fmtUsd(me.pending_total)} tone="warn" sub={`${me.pending_payouts.length} items`} />
       </div>
@@ -139,7 +139,7 @@ export default function AffiliateDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         <Stat label="Current rate" value={`${aff.commission_pct}%`} />
         <Stat label="MTD volume" value={fmtUsd(stats.mtd_volume)} sub={`${stats.mtd_orders} orders`} />
-        <Stat label="MTD projected commission" value={fmtUsd(stats.mtd_projected_commission)} tone="success" />
+        <Stat label="MTD commission" value={fmtUsd(stats.mtd_commission)} tone="success" />
         <Stat label="Last month volume" value={fmtUsd(stats.last_month_volume)} sub={`${stats.last_month_orders} orders`} />
       </div>
 
@@ -251,7 +251,7 @@ export default function AffiliateDashboard() {
                 <th className="px-3 py-2 text-left font-mono text-[10px] uppercase text-ink-mute">Period</th>
                 <th className="px-3 py-2 text-right font-mono text-[10px] uppercase text-ink-mute">Volume</th>
                 <th className="px-3 py-2 text-right font-mono text-[10px] uppercase text-ink-mute">Orders</th>
-                <th className="px-3 py-2 text-right font-mono text-[10px] uppercase text-ink-mute">Commission est.</th>
+                <th className="px-3 py-2 text-right font-mono text-[10px] uppercase text-ink-mute">Commission</th>
               </tr>
             </thead>
             <tbody>
@@ -260,13 +260,13 @@ export default function AffiliateDashboard() {
                   <td className="px-3 py-2 font-mono">{fmtPeriod(m.period)}</td>
                   <td className="px-3 py-2 text-right">{fmtUsd(m.volume)}</td>
                   <td className="px-3 py-2 text-right">{m.orders}</td>
-                  <td className="px-3 py-2 text-right text-success">{fmtUsd(m.commission_estimate)}</td>
+                  <td className="px-3 py-2 text-right text-success">{fmtUsd(m.commission)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <p className="opp-meta-mono mt-2 text-ink-mute text-xs">
-            Commission estimate uses your current rate. For audit-grade reports per period, email admin.
+            Commission per order locks in at the rate in effect at order time. Tier ratchets apply to future orders only.
           </p>
         </div>
       )}

@@ -39,47 +39,41 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
     if (pErr) throw pErr
 
-    // Per-order commission aggregated by month
+    // Per-order volume + commission aggregated by month, using per-order snapshots
+    // (orders.affiliate_commission_pct, captured at order-create time). Accurate to
+    // the rate that was in effect when each order was placed.
     const { data: orders, error: oErr } = await supabaseAdmin
       .from('orders')
-      .select('total, created_at')
+      .select('total, affiliate_commission_pct, created_at')
       .eq('affiliate_code', aff.code)
       .eq('payment_status', 'completed')
       .gte('created_at', cutoff.toISOString())
     if (oErr) throw oErr
 
-    // Pull commission_pct snapshots — for now, aggregate at affiliate's current commission_pct
-    // (the orders table doesn't currently snapshot rate per-order; per-order rate snapshotting
-    // is a v1.1 schema change. Today the rate is whatever the affiliate's row has at order time.)
-    const { data: affRate } = await supabaseAdmin
-      .from('affiliates')
-      .select('commission_pct')
-      .eq('id', aff.id)
-      .single()
-    const currentRate = Number(affRate?.commission_pct || 0)
-
-    // Group orders by YYYY-MM
+    // Group by YYYY-MM
     const ordersByMonth = {}
     for (const o of orders || []) {
       const d = new Date(o.created_at)
       const k = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
-      if (!ordersByMonth[k]) ordersByMonth[k] = { volume: 0, orders: 0 }
-      ordersByMonth[k].volume += Number(o.total || 0)
+      if (!ordersByMonth[k]) ordersByMonth[k] = { volume: 0, orders: 0, commission: 0 }
+      const orderTotal = Number(o.total || 0)
+      const rate = Number(o.affiliate_commission_pct || 0)
+      ordersByMonth[k].volume += orderTotal
       ordersByMonth[k].orders += 1
+      ordersByMonth[k].commission += (orderTotal * rate) / 100
     }
     const monthlyVolume = Object.entries(ordersByMonth)
       .map(([period, v]) => ({
         period,
         volume: v.volume,
         orders: v.orders,
-        commission_estimate: (v.volume * currentRate) / 100,
+        commission: v.commission,
       }))
       .sort((a, b) => (a.period < b.period ? 1 : -1))
 
     return res.status(200).json({
       payouts: payouts || [],
       monthly_volume: monthlyVolume,
-      note: 'commission_estimate uses current commission_pct; for the historically accurate rate per period, ask admin for an audit-grade report.',
     })
   } catch (err) {
     console.error('Payouts endpoint error:', err)

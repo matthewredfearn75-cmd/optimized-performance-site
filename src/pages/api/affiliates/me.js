@@ -29,37 +29,40 @@ function periodRange(periodKey) {
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
-async function sumOrders(code, periodKey) {
-  const { start, end } = periodRange(periodKey)
+// Aggregates volume + actual commission from per-order snapshots
+// (orders.affiliate_commission_pct, written at order-create time). Falls back
+// to 0 commission for any order missing a snapshot (after migration v6 backfill,
+// shouldn't happen, but defensive).
+async function sumOrdersWithCommission(code, start, end) {
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('total')
+    .select('total, affiliate_commission_pct')
     .eq('affiliate_code', code)
     .eq('payment_status', 'completed')
     .gte('created_at', start)
     .lt('created_at', end)
   if (error) throw error
-  const total = (data || []).reduce((s, o) => s + Number(o.total || 0), 0)
-  const count = (data || []).length
-  return { total, count }
+  let total = 0
+  let commission = 0
+  for (const o of data || []) {
+    const orderTotal = Number(o.total || 0)
+    const rate = Number(o.affiliate_commission_pct || 0)
+    total += orderTotal
+    commission += (orderTotal * rate) / 100
+  }
+  return { total, commission, count: (data || []).length }
+}
+
+async function sumPeriod(code, periodKey) {
+  const { start, end } = periodRange(periodKey)
+  return sumOrdersWithCommission(code, start, end)
 }
 
 async function sumYtd(code) {
   const now = new Date()
   const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1)).toISOString()
   const end = new Date(Date.UTC(now.getUTCFullYear() + 1, 0, 1)).toISOString()
-  const { data, error } = await supabaseAdmin
-    .from('orders')
-    .select('total')
-    .eq('affiliate_code', code)
-    .eq('payment_status', 'completed')
-    .gte('created_at', start)
-    .lt('created_at', end)
-  if (error) throw error
-  return {
-    total: (data || []).reduce((s, o) => s + Number(o.total || 0), 0),
-    count: (data || []).length,
-  }
+  return sumOrdersWithCommission(code, start, end)
 }
 
 export default async function handler(req, res) {
@@ -85,12 +88,12 @@ export default async function handler(req, res) {
     if (affErr || !aff) return res.status(404).json({ error: 'Affiliate not found' })
     if (!aff.active) return res.status(403).json({ error: 'Affiliate account is inactive' })
 
-    // MTD + last-month + YTD volume
+    // MTD + last-month + YTD volume + actual commission (from per-order snapshots)
     const thisPeriod = periodKey()
     const lastPeriod = previousPeriodKey()
     const [mtd, lastMonth, ytd] = await Promise.all([
-      sumOrders(aff.code, thisPeriod),
-      sumOrders(aff.code, lastPeriod),
+      sumPeriod(aff.code, thisPeriod),
+      sumPeriod(aff.code, lastPeriod),
       sumYtd(aff.code),
     ])
 
@@ -105,10 +108,7 @@ export default async function handler(req, res) {
 
     const pendingTotal = (pendingPayouts || []).reduce((s, p) => s + Number(p.amount || 0), 0)
 
-    // Projected MTD commission at current rate
-    const projectedMtdCommission = (mtd.total * Number(aff.commission_pct || 0)) / 100
-
-    // YTD commission paid (cron-driven payouts marked paid this year)
+    // YTD payouts processed (cron-driven payouts created this year — overrides + royalties)
     const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString()
     const { data: ytdPayouts } = await supabaseAdmin
       .from('affiliate_payouts')
@@ -116,7 +116,6 @@ export default async function handler(req, res) {
       .eq('affiliate_id', aff.id)
       .gte('created_at', yearStart)
     const ytdPayoutsTotal = (ytdPayouts || []).reduce((s, p) => s + Number(p.amount || 0), 0)
-    const ytdEstimatedCommission = (ytd.total * Number(aff.commission_pct || 0)) / 100
 
     // Whether they have a network they can recruit into
     const hasNetwork = Number(aff.recruiter_override_pct || 0) > 0
@@ -135,12 +134,13 @@ export default async function handler(req, res) {
       stats: {
         mtd_volume: mtd.total,
         mtd_orders: mtd.count,
-        mtd_projected_commission: projectedMtdCommission,
+        mtd_commission: mtd.commission,
         last_month_volume: lastMonth.total,
         last_month_orders: lastMonth.count,
+        last_month_commission: lastMonth.commission,
         ytd_volume: ytd.total,
         ytd_orders: ytd.count,
-        ytd_estimated_commission: ytdEstimatedCommission,
+        ytd_commission: ytd.commission,
         ytd_payouts_total: ytdPayoutsTotal,
         lifetime_volume: Number(aff.total_revenue || 0),
         lifetime_orders: Number(aff.total_sales || 0),
