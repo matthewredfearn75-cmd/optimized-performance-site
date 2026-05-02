@@ -84,7 +84,7 @@ async function bankfulCreateSession({ orderNumber, amountCents, currency, custom
 
   const redirectUrl = data.redirect_url
   if (!redirectUrl) {
-    throw new Error(`[bankful] HPP response missing redirect_url — fields: ${Object.keys(data).join(', ')}`)
+    throw new Error(`[bankful] HPP no redirect_url. status=${data.status} errorMessage=${data.errorMessage} body=${text.slice(0, 400)}`)
   }
   return { redirectUrl }
 }
