@@ -16,11 +16,11 @@ const peptides = [
   { file: 'hgh-191aa-10iu', name: 'HGH 191AA', desc: 'Somatropin 191AA', dosage: '10 IU', sku: 'OP-HGH-10IU' },
   { file: 'mt2-5mg', name: 'MT-2', desc: 'Melanotan II', dosage: '5 mg', sku: 'OP-MT2-5MG' },
   { file: 'nad-500mg', name: 'NAD+', desc: 'Nicotinamide Adenine Dinucleotide', dosage: '500 mg', sku: 'OP-NAD-500MG' },
-  { file: 'retatrutide-10mg', name: 'Retatrutide', desc: 'GLP-1/GIP/Glucagon Triple Agonist', dosage: '10 mg', sku: 'OP-RET-10MG' },
-  { file: 'retatrutide-20mg', name: 'Retatrutide', desc: 'GLP-1/GIP/Glucagon Triple Agonist', dosage: '20 mg', sku: 'OP-RET-20MG' },
 ];
 
-function makeSvg({ name, desc, dosage, sku }) {
+const DEFAULT_VIAL = '3 mL vial';
+
+function makeSvg({ name, desc, dosage, sku, vial = DEFAULT_VIAL }) {
   const fontSize = name.length > 10 ? 22 : name.length > 7 ? 26 : 30;
   const lyoX = dosage.length > 5 ? 185 : 178;
   const safeName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -32,55 +32,64 @@ function makeSvg({ name, desc, dosage, sku }) {
   <rect x="2" y="2" width="428" height="212" rx="5" fill="none" stroke="#00B4D8" stroke-width="1" opacity="0.4"/>
 
   <!-- Left divider -->
-  <line x1="110" y1="16" x2="110" y2="200" stroke="#00B4D8" stroke-width="0.8" opacity="0.25"/>
+  <line x1="110" y1="14" x2="110" y2="202" stroke="#00B4D8" stroke-width="0.8" opacity="0.25"/>
 
   <!-- Mandala logo -->
-  <g transform="translate(56, 78)">
-    <polygon points="0,-34 29.4,-17 29.4,17 0,34 -29.4,17 -29.4,-17" fill="none" stroke="#00B4D8" stroke-width="1.2" opacity="0.25"/>
-    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="none" stroke="#00B4D8" stroke-width="1.2" opacity="0.5"/>
-    <polygon points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="none" stroke="#00B4D8" stroke-width="1.5" opacity="0.8"/>
-    <circle cx="0" cy="-34" r="2.5" fill="#00B4D8" opacity="0.6"/>
-    <circle cx="29.4" cy="-17" r="2.5" fill="#00B4D8" opacity="0.5"/>
-    <circle cx="29.4" cy="17" r="2.5" fill="#0077B6" opacity="0.5"/>
-    <circle cx="0" cy="34" r="2.5" fill="#0077B6" opacity="0.6"/>
-    <circle cx="-29.4" cy="17" r="2.5" fill="#0077B6" opacity="0.5"/>
-    <circle cx="-29.4" cy="-17" r="2.5" fill="#00B4D8" opacity="0.5"/>
-    <circle cx="0" cy="0" r="4" fill="#00B4D8"/>
-    <circle cx="0" cy="0" r="2" fill="#0D1B2A"/>
-    <polygon points="0,-30 7,-22 -7,-22" fill="none" stroke="#00B4D8" stroke-width="0.8" opacity="0.6"/>
-    <polygon points="0,30 7,22 -7,22" fill="none" stroke="#0077B6" stroke-width="0.8" opacity="0.6"/>
+  <g transform="translate(56, 70)">
+    <polygon points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="none" stroke="#00B4D8" stroke-width="1.2" opacity="0.25"/>
+    <polygon points="0,-19.5 16.9,-9.75 16.9,9.75 0,19.5 -16.9,9.75 -16.9,-9.75" fill="none" stroke="#00B4D8" stroke-width="1.2" opacity="0.5"/>
+    <polygon points="0,-10.5 9.1,-5.25 9.1,5.25 0,10.5 -9.1,5.25 -9.1,-5.25" fill="none" stroke="#00B4D8" stroke-width="1.5" opacity="0.8"/>
+    <circle cx="0" cy="-30" r="2.2" fill="#00B4D8" opacity="0.6"/>
+    <circle cx="26" cy="-15" r="2.2" fill="#00B4D8" opacity="0.5"/>
+    <circle cx="26" cy="15" r="2.2" fill="#0077B6" opacity="0.5"/>
+    <circle cx="0" cy="30" r="2.2" fill="#0077B6" opacity="0.6"/>
+    <circle cx="-26" cy="15" r="2.2" fill="#0077B6" opacity="0.5"/>
+    <circle cx="-26" cy="-15" r="2.2" fill="#00B4D8" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3.5" fill="#00B4D8"/>
+    <circle cx="0" cy="0" r="1.8" fill="#0D1B2A"/>
+    <polygon points="0,-26 6,-19 -6,-19" fill="none" stroke="#00B4D8" stroke-width="0.8" opacity="0.6"/>
+    <polygon points="0,26 6,19 -6,19" fill="none" stroke="#0077B6" stroke-width="0.8" opacity="0.6"/>
   </g>
 
   <!-- Brand text -->
-  <text x="56" y="132" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF" letter-spacing="1.8">OPTIMIZED</text>
-  <text x="56" y="144" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="6.5" font-weight="400" fill="#90CAF9" letter-spacing="2.2">PERFORMANCE</text>
+  <text x="56" y="124" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF" letter-spacing="1.8">OPTIMIZED</text>
+  <text x="56" y="136" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="6.5" font-weight="400" fill="#90CAF9" letter-spacing="2.2">PERFORMANCE</text>
+  <text x="56" y="147" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="6.5" font-weight="400" fill="#90CAF9" letter-spacing="2.2">PEPTIDES</text>
 
   <!-- Product name -->
-  <text x="128" y="52" font-family="'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="800" fill="#FFFFFF" letter-spacing="1.5">${safeName}</text>
+  <text x="128" y="46" font-family="'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="800" fill="#FFFFFF" letter-spacing="1.5">${safeName}</text>
 
   <!-- Cyan accent line -->
-  <line x1="128" y1="60" x2="300" y2="60" stroke="#00B4D8" stroke-width="1.5" opacity="0.6"/>
+  <line x1="128" y1="54" x2="300" y2="54" stroke="#00B4D8" stroke-width="1.5" opacity="0.6"/>
 
   <!-- Descriptor -->
-  <text x="128" y="80" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" font-weight="400" fill="#90CAF9" letter-spacing="0.5">${safeDesc}</text>
+  <text x="128" y="72" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="400" fill="#90CAF9" letter-spacing="0.5">${safeDesc}</text>
 
   <!-- Dosage + format -->
-  <text x="128" y="104" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#00B4D8" letter-spacing="0.5">${dosage}</text>
-  <text x="${lyoX}" y="104" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" font-weight="400" fill="#7BA3C4">Lyophilized Powder</text>
+  <text x="128" y="92" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="700" fill="#00B4D8" letter-spacing="0.5">${dosage}</text>
+  <text x="${lyoX}" y="92" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="400" fill="#7BA3C4">Lyophilized Powder</text>
 
   <!-- Purity + storage -->
-  <text x="128" y="124" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" opacity="0.85" letter-spacing="0.3">Purity: &gt;99%</text>
-  <text x="240" y="124" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="400" fill="#7BA3C4">Store at -20&#xB0;C</text>
+  <text x="128" y="109" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="600" fill="#FFFFFF" opacity="0.85" letter-spacing="0.3">Purity per COA</text>
+  <text x="240" y="109" font-family="'Helvetica Neue', Arial, sans-serif" font-size="8.5" font-weight="400" fill="#7BA3C4">Store at -20&#xB0;C</text>
 
   <!-- Divider -->
-  <line x1="128" y1="138" x2="420" y2="138" stroke="#00B4D8" stroke-width="0.5" opacity="0.2"/>
+  <line x1="128" y1="119" x2="420" y2="119" stroke="#00B4D8" stroke-width="0.5" opacity="0.2"/>
 
-  <!-- RUO -->
-  <text x="128" y="156" font-family="'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="600" fill="#00B4D8" opacity="0.7" letter-spacing="0.8">FOR RESEARCH USE ONLY</text>
+  <!-- RUO header (high-contrast red) -->
+  <text x="128" y="134" font-family="'Helvetica Neue', Arial, sans-serif" font-size="8.5" font-weight="700" fill="#FF4D6D" letter-spacing="0.8">FOR RESEARCH USE ONLY</text>
 
-  <!-- Lot + SKU -->
-  <text x="128" y="176" font-family="'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="400" fill="#7BA3C4" opacity="0.5">Lot: __________</text>
-  <text x="420" y="176" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7" font-weight="400" fill="#7BA3C4" opacity="0.4">${sku} | 2 mL vial</text>
+  <!-- RUO supporting disclaimer -->
+  <text x="128" y="147" font-family="'Helvetica Neue', Arial, sans-serif" font-size="6.5" font-weight="500" fill="#FF8FA3" letter-spacing="0.2">Not for human consumption. Not a drug, food, or cosmetic.</text>
+
+  <!-- Lot / MFG / EXP stamp area -->
+  <text x="128" y="170" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7.5" font-weight="400" fill="#7BA3C4" opacity="0.6">Lot: _______</text>
+  <text x="220" y="170" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7.5" font-weight="400" fill="#7BA3C4" opacity="0.6">MFG: _______</text>
+  <text x="320" y="170" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7.5" font-weight="400" fill="#7BA3C4" opacity="0.6">EXP: _______</text>
+
+  <!-- Footer: website + SKU + vial -->
+  <text x="128" y="190" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7" font-weight="500" fill="#90CAF9" opacity="0.75" letter-spacing="0.3">optimizedperformancepeptides.com</text>
+  <text x="420" y="190" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="7" font-weight="400" fill="#7BA3C4" opacity="0.55">${sku} | ${vial}</text>
 </svg>`;
 }
 

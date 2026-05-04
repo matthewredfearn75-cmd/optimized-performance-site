@@ -9,6 +9,7 @@ function requireAuth(req) {
 }
 
 const ALLOWED_STATUSES = ['pending', 'packed', 'shipped', 'fulfilled', 'cancelled']
+const ALLOWED_FRAUD_STATUSES = ['unreviewed', 'cleared', 'flagged', 'blocked']
 
 export default async function handler(req, res) {
   if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { id, status, tracking, notes } = req.body
+      const { id, status, tracking, notes, fraud_status } = req.body
       if (!id) return res.status(400).json({ error: 'Missing id' })
 
       // Pull the prior row so we can detect transitions (pending→shipped) and
@@ -51,6 +52,12 @@ export default async function handler(req, res) {
       }
       if (tracking !== undefined) patch.tracking = String(tracking).slice(0, 200)
       if (notes !== undefined) patch.notes = String(notes).slice(0, 1000)
+      if (fraud_status !== undefined) {
+        if (!ALLOWED_FRAUD_STATUSES.includes(fraud_status)) {
+          return res.status(400).json({ error: 'Invalid fraud_status' })
+        }
+        patch.fraud_status = fraud_status
+      }
 
       const newStatus = patch.fulfillment_status ?? prior?.fulfillment_status
       const newTracking = patch.tracking ?? prior?.tracking

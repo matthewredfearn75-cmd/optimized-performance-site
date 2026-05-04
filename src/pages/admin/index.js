@@ -2,6 +2,7 @@ import { useState } from 'react';
 import products from '../../data/products';
 import InventoryTab from './InventoryTab';
 import SupplyTab from './SupplyTab';
+import BatchesTab from './BatchesTab';
 import OrdersTab from './OrdersTab';
 import AffiliatesTab from './AffiliatesTab';
 import PayoutsTab from './PayoutsTab';
@@ -80,6 +81,7 @@ export default function AdminPage() {
     { id: 'orders', label: 'Orders' },
     { id: 'inventory', label: 'Inventory' },
     { id: 'supply', label: 'Supply Tracker' },
+    { id: 'batches', label: 'Batches' },
     { id: 'affiliates', label: 'Affiliates' },
     { id: 'payouts', label: 'Payouts' },
     { id: 'chargebacks', label: 'Chargebacks' },
@@ -137,6 +139,7 @@ export default function AdminPage() {
         {activeTab === 'orders' && <OrdersTab products={products} showSaveMsg={showSaveMsg} token={token} />}
         {activeTab === 'inventory' && <InventoryTab products={products} showSaveMsg={showSaveMsg} token={token} />}
         {activeTab === 'supply' && <SupplyTab products={products} token={token} />}
+        {activeTab === 'batches' && <BatchesTab products={products} showSaveMsg={showSaveMsg} token={token} />}
         {activeTab === 'affiliates' && <AffiliatesTab showSaveMsg={showSaveMsg} token={token} />}
         {activeTab === 'payouts' && <PayoutsTab showSaveMsg={showSaveMsg} token={token} />}
         {activeTab === 'chargebacks' && <ChargebacksTab showSaveMsg={showSaveMsg} token={token} />}

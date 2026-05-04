@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../../../lib/supabase'
 import { validateOrigin, rateLimit, validateEmail, validateString, validateZip } from '../../../lib/security'
 import { createCheckoutSession } from '../../../lib/payments/cardProcessor'
+import { runVelocityChecks, extractClientIP } from '../../../lib/fraud-checks'
 
 function generateOrderNumber() {
   const date = new Date()
@@ -87,6 +88,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid order total' })
     }
 
+    // Velocity / fraud checks. Same residential address from multiple identities
+    // within 24h is the strongest fraud signal — block hard. 30-day window flags
+    // for admin review without blocking. See src/lib/fraud-checks.js.
+    const customerIp = extractClientIP(req)
+    const userAgent = String(req.headers['user-agent'] || '').slice(0, 500)
+    const velocity = await runVelocityChecks({
+      email,
+      address,
+      city,
+      state,
+      zip,
+      ip: customerIp,
+    })
+
     const orderNumber = generateOrderNumber()
 
     const insertData = {
@@ -101,6 +116,10 @@ export default async function handler(req, res) {
       subtotal,
       total,
       payment_status: 'pending',
+      customer_ip: customerIp,
+      user_agent: userAgent,
+      fraud_status: velocity.status === 'block' ? 'blocked' : velocity.status === 'flag' ? 'flagged' : 'unreviewed',
+      fraud_reasons: velocity.reasons,
     }
 
     if (validatedAffiliateCode) {
@@ -118,6 +137,20 @@ export default async function handler(req, res) {
     if (error) {
       console.error('Order creation failed:', error)
       return res.status(500).json({ error: error.message })
+    }
+
+    // Hard-blocked orders are recorded for the audit trail but never reach the
+    // payment processor. Client sees a generic verification message — never
+    // disclose the block reason (gives fraud actors a feedback loop). Admin
+    // reviews via the Orders tab and can clear+reprocess if it was a false
+    // positive.
+    if (velocity.status === 'block') {
+      console.warn('[orders/create] Blocked by velocity check:', orderNumber, velocity.reasons)
+      return res.status(202).json({
+        order_number: orderNumber,
+        verification_required: true,
+        message: 'Your order requires manual verification. Our team will contact you within one business day. No payment has been collected.',
+      })
     }
 
     if (paymentMethod === 'card') {

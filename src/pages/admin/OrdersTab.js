@@ -19,6 +19,23 @@ const STATUS_CLASSES = {
   cancelled: 'bg-danger/10 text-danger border-danger/30',
 };
 
+// Velocity-engine output. Set by /api/orders/create from src/lib/fraud-checks.js.
+// 'flagged' = soft trigger, payment allowed, admin should review pre-ship.
+// 'blocked' = hard trigger (24h address velocity), no payment processed.
+// 'cleared' = admin reviewed and approved for fulfillment.
+const FRAUD_REASON_LABELS = {
+  address_velocity_24h_other_identity:
+    '24h address velocity — same shipping address as a different customer in the last day',
+  address_velocity_30d_other_identity:
+    '30d address velocity — same shipping address as a different customer in the last month',
+  ip_velocity_24h_multi_address:
+    'IP velocity — same source IP placing orders to multiple addresses',
+  email_pattern_low_trust:
+    'Low-trust email pattern — letters-only firstname+lastname on a free provider (synthetic-identity signature)',
+  velocity_check_error:
+    'Velocity check failed at order time — verify this order manually',
+};
+
 // Preorder helpers — operate on the per-item metadata persisted in the orders
 // table's items JSON column (set by /api/orders/create from the checkout flow).
 function hasPreorderItems(order) {
@@ -118,6 +135,21 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
         body: JSON.stringify({ id: orderId, status: 'cancelled' }),
       });
       await fetchOrders();
+    } catch {
+      /* fail */
+    }
+  }
+
+  async function clearFraudFlag(orderId) {
+    if (!window.confirm('Mark fraud flag as cleared? Order will be treated as verified for fulfillment.')) return;
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ id: orderId, fraud_status: 'cleared' }),
+      });
+      await fetchOrders();
+      showSaveMsg('Fraud flag cleared.');
     } catch {
       /* fail */
     }
@@ -273,6 +305,30 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                               PREORDER
                             </span>
                           )}
+                          {order.fraud_status === 'blocked' && (
+                            <span
+                              className="text-[10px] font-bold tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-danger text-surface"
+                              title="Velocity check blocked — no payment processed. Review before clearing."
+                            >
+                              BLOCKED
+                            </span>
+                          )}
+                          {order.fraud_status === 'flagged' && (
+                            <span
+                              className="text-[10px] font-bold tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-warning text-surface"
+                              title="Velocity check flagged — review before fulfillment."
+                            >
+                              FLAGGED
+                            </span>
+                          )}
+                          {order.fraud_status === 'cleared' && (
+                            <span
+                              className="text-[10px] font-bold tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-success/15 text-success border border-success/30"
+                              title="Fraud flag cleared by admin — OK to fulfill."
+                            >
+                              ✓ CLEARED
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-ink-soft">{new Date(order.created_at).toLocaleDateString()}</td>
@@ -327,6 +383,43 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                     {isExpanded && (
                       <tr className="bg-surfaceAlt/60">
                         <td colSpan={9} className="px-5 py-4">
+                          {(order.fraud_status === 'flagged' || order.fraud_status === 'blocked') && (
+                            <div
+                              className={`mb-4 p-3 rounded-opp border ${
+                                order.fraud_status === 'blocked'
+                                  ? 'bg-danger/10 border-danger/40'
+                                  : 'bg-warning/10 border-warning/40'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <div>
+                                  <div className={`opp-meta-mono uppercase font-semibold ${order.fraud_status === 'blocked' ? 'text-danger' : 'text-warning'}`}>
+                                    {order.fraud_status === 'blocked'
+                                      ? 'Velocity check — BLOCKED (no payment processed)'
+                                      : 'Velocity check — flagged for review'}
+                                  </div>
+                                  <ul className="mt-2 ml-4 list-disc text-[13px] text-ink-soft space-y-1">
+                                    {(order.fraud_reasons || []).map((reason) => (
+                                      <li key={reason}>{FRAUD_REASON_LABELS[reason] || reason}</li>
+                                    ))}
+                                  </ul>
+                                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-[12px] text-ink-mute font-mono">
+                                    {order.customer_ip && <div>IP: {order.customer_ip}</div>}
+                                    {order.user_agent && <div className="truncate" title={order.user_agent}>UA: {order.user_agent}</div>}
+                                  </div>
+                                </div>
+                                <button
+                                  className="text-[11px] font-semibold px-3 py-1.5 rounded-opp border border-success/40 bg-success/10 text-success hover:bg-success/20 whitespace-nowrap"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    clearFraudFlag(order.id);
+                                  }}
+                                >
+                                  Mark Clear
+                                </button>
+                              </div>
+                            </div>
+                          )}
                           <div className="grid gap-4 md:grid-cols-4 grid-cols-1">
                             <div>
                               <div className="opp-meta-mono uppercase mb-1">Shipping</div>

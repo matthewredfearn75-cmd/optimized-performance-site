@@ -11,10 +11,13 @@
     "@moonpay/moonpay-react": "^1.10.6",
     "@supabase/supabase-js": "^2.101.1",
     "next": "^14.2.0",
+    "pdfkit": "^0.18.0",
     "puppeteer-core": "^24.40.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
