@@ -63,7 +63,13 @@ export default function Checkout() {
 
   const discountPct = affiliateApplied ? affiliateApplied.discountPct : 0;
   const discountAmount = cartTotal * (discountPct / 100);
-  const discountedTotal = cartTotal - discountAmount;
+  const discountedSubtotal = cartTotal - discountAmount;
+  // Mirror of the server-side shipping calc in /api/orders/create. Server is
+  // source of truth; this is just for the displayed summary.
+  const SHIPPING_FLAT_RATE = 15;
+  const FREE_SHIPPING_THRESHOLD = 200;
+  const shippingCost = discountedSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE;
+  const discountedTotal = discountedSubtotal + shippingCost;
 
   // Preorder summary — derive from cart line metadata persisted by addToCart
   const preorderItems = cartItems.filter((item) => item.isPreorder);
@@ -349,6 +355,19 @@ export default function Checkout() {
                 </span>
                 <span className="text-success font-semibold">-${discountAmount.toFixed(2)}</span>
               </div>
+            )}
+            <div className="flex justify-between text-[13px]">
+              <span className="text-ink-soft">Shipping</span>
+              {shippingCost === 0 ? (
+                <span className="text-success font-semibold">FREE</span>
+              ) : (
+                <span className="text-ink">${shippingCost.toFixed(2)}</span>
+              )}
+            </div>
+            {shippingCost > 0 && (
+              <p className="opp-meta-mono text-ink-mute m-0">
+                Free shipping on orders ${FREE_SHIPPING_THRESHOLD}+ — add ${(FREE_SHIPPING_THRESHOLD - discountedSubtotal).toFixed(2)} to qualify.
+              </p>
             )}
             <div className="flex justify-between pt-3 border-t border-line text-base font-bold text-ink">
               <span>Total</span>

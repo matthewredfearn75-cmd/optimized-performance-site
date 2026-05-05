@@ -14,6 +14,9 @@ function generateOrderNumber() {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://optimizedperformancepeptides.com'
 
+const SHIPPING_FLAT_RATE = 15
+const FREE_SHIPPING_THRESHOLD = 200
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!validateOrigin(req)) return res.status(403).json({ error: 'Forbidden' })
@@ -78,11 +81,15 @@ export default async function handler(req, res) {
     }
 
     const discountedTotal = subtotal - discount
+    // Free shipping threshold uses the post-discount subtotal — what the
+    // customer is actually paying for product, not the pre-discount sticker.
+    const shipping = discountedTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE
+    const preFeeTotal = discountedTotal + shipping
     // Crypto path adds 4% to cover MoonPay processing; card path eats the
     // processor fee from margin.
     const total = paymentMethod === 'crypto'
-      ? Math.ceil(discountedTotal * 1.04 * 100) / 100
-      : Math.round(discountedTotal * 100) / 100
+      ? Math.ceil(preFeeTotal * 1.04 * 100) / 100
+      : Math.round(preFeeTotal * 100) / 100
 
     if (total <= 0 || total > 50000) {
       return res.status(400).json({ error: 'Invalid order total' })
@@ -114,6 +121,7 @@ export default async function handler(req, res) {
       zip,
       items,
       subtotal,
+      shipping,
       total,
       payment_status: 'pending',
       customer_ip: customerIp,
@@ -179,6 +187,7 @@ export default async function handler(req, res) {
           order_number: orderNumber,
           order_id: order.id,
           total,
+          shipping,
           discount,
           redirect_url: redirectUrl,
         })

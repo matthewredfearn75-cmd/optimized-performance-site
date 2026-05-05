@@ -163,7 +163,7 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
 
   function exportCSV() {
     const filtered = applyFilters(orders);
-    const headers = ['Order #', 'Payment', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Has Preorder', 'Preorder Ship Date', 'Subtotal', 'Discount', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
+    const headers = ['Order #', 'Payment', 'Status', 'Date', 'Customer', 'Email', 'Address', 'City', 'State', 'ZIP', 'Items', 'Has Preorder', 'Preorder Ship Date', 'Subtotal', 'Discount', 'Shipping', 'Total', 'Affiliate Code', 'Commission %', 'Tracking', 'Notes'];
     const rows = filtered.map((o) => [
       o.order_number, o.payment_status || '', STATUS_LABELS[o.fulfillment_status || 'pending'],
       new Date(o.created_at).toLocaleDateString(), o.customer_name, o.customer_email,
@@ -172,6 +172,7 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
       hasPreorderItems(o) ? 'YES' : 'no',
       latestPreorderShipDateISO(o) || '',
       Number(o.subtotal || 0).toFixed(2), Number(o.discount || 0).toFixed(2),
+      Number(o.shipping || 0).toFixed(2),
       Number(o.total || 0).toFixed(2), o.affiliate_code || '',
       o.affiliate_commission_pct || '', o.tracking || '', o.notes || '',
     ]);
@@ -445,6 +446,9 @@ export default function OrdersTab({ products, showSaveMsg, token }) {
                                   Discount: -${Number(order.discount).toFixed(2)} ({order.affiliate_code})
                                 </div>
                               )}
+                              <div className="text-[13px] text-ink-soft mt-1">
+                                Shipping: {Number(order.shipping || 0) === 0 ? 'FREE' : `$${Number(order.shipping).toFixed(2)}`}
+                              </div>
                               <div className="text-[13px] font-bold mt-1 text-ink">Total: ${Number(order.total || 0).toFixed(2)}</div>
                               {orderHasPreorders && (
                                 <div className="text-[13px] text-accent-strong mt-2 font-semibold">

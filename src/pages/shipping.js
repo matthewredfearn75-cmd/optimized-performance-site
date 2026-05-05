@@ -33,6 +33,7 @@ export default function ShippingReturns() {
                 <thead>
                   <tr className="bg-surfaceAlt">
                     <th className="text-left px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute">Method</th>
+                    <th className="text-left px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute">Cost</th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute">Estimated Delivery</th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-mute">Details</th>
                   </tr>
@@ -40,18 +41,21 @@ export default function ShippingReturns() {
                 <tbody>
                   <tr className="border-t border-line">
                     <td className="px-4 py-3 text-ink font-medium">Standard Shipping</td>
+                    <td className="px-4 py-3 text-ink-soft font-mono">$15 flat</td>
                     <td className="px-4 py-3 text-ink-soft">3–5 business days</td>
                     <td className="px-4 py-3 text-ink-soft">USPS Priority Mail</td>
                   </tr>
                   <tr className="border-t border-line">
                     <td className="px-4 py-3 text-ink font-medium">Expedited Shipping</td>
+                    <td className="px-4 py-3 text-ink-soft">By request</td>
                     <td className="px-4 py-3 text-ink-soft">1–2 business days</td>
-                    <td className="px-4 py-3 text-ink-soft">USPS Priority Mail Express (when available)</td>
+                    <td className="px-4 py-3 text-ink-soft">USPS Priority Mail Express — email us for a quote</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <ul className="list-disc pl-5 space-y-1.5 text-sm text-ink-soft leading-relaxed">
+              <li><strong className="text-ink">Free standard shipping on orders $200+</strong> (after any affiliate or promo discount).</li>
               <li>All orders ship from within the United States.</li>
               <li>We currently ship to <strong className="text-ink">US addresses only</strong>.</li>
               <li>Shipping times are estimates and not guaranteed.</li>

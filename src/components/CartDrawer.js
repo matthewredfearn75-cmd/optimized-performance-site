@@ -136,7 +136,7 @@ export default function CartDrawer() {
               </div>
               <div className="flex justify-between opp-meta-mono">
                 <span>Shipping</span>
-                <span>Calculated at checkout</span>
+                <span>{cartTotal >= 200 ? 'FREE' : '$15 flat · free over $200'}</span>
               </div>
               <button className="btn-primary w-full mt-1" onClick={() => goto('/checkout')}>
                 Checkout <Icon name="arrow" size={16} />
