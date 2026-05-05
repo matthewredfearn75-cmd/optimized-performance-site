@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getVisibleProducts } from '../data/products';
+import { getVisibleProductsForCohort } from '../data/products';
+import { supabaseAdmin } from '../lib/supabase';
+import { getCohortFromRequest } from '../lib/cohort-session';
 import ProductCard from '../components/ProductCard';
 import SEO from '../components/SEO';
 import { Vial, Icon } from '../components/Primitives';
@@ -19,9 +21,8 @@ const TRUST = [
   { icon: 'lock', k: 'Secure Checkout', v: 'Card payments processed securely by MoonPay.' },
 ];
 
-export default function Home() {
+export default function Home({ visibleProducts }) {
   const router = useRouter();
-  const visibleProducts = getVisibleProducts();
   const featured = visibleProducts.filter((p) => p.badge === 'HERO').slice(0, 3);
   const activeSkus = visibleProducts.filter((p) => !p.isKit).length;
 
@@ -199,4 +200,15 @@ function SpecLine({ k, v }) {
       <span className="text-ink">{v}</span>
     </div>
   );
+}
+
+export async function getServerSideProps(context) {
+  // Cohort gate runs on the homepage too — featured-SKU section uses HERO
+  // badges which currently sit on GLP-3 (restricted). Without this, an
+  // unflagged visitor would either see GLP-3 in the rendered HTML (bad) or
+  // get a fallback hero (acceptable but the page does need SSR for the cookie
+  // pickup either way, since affiliate links land here first).
+  const { cohortAllowed } = await getCohortFromRequest(context, supabaseAdmin);
+  const visibleProducts = getVisibleProductsForCohort(cohortAllowed);
+  return { props: { visibleProducts } };
 }

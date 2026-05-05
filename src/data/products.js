@@ -338,18 +338,46 @@ export function getInventoryDeductions(product, quantity = 1) {
   return [{ productId: product.id, vials: quantity }];
 }
 
-// Feature flag: when NEXT_PUBLIC_HIDE_RESTRICTED is "true", products marked
-// `restricted: true` are hidden from the public catalog, homepage, category
-// counts, and related-products grids. Direct detail-page URLs render a
-// "Private Inquiry" view routing to the configured contact channel.
+// Three-mode restricted-SKU visibility, in priority order:
 //
-// This exists to handle category-level processor restrictions (e.g. GLP-1
-// analog crackdown). Default is OFF — flip the env var on Vercel and redeploy
-// to hide those SKUs. No code change needed to toggle.
+//   1. NEXT_PUBLIC_HIDE_RESTRICTED=true  → hard hide everywhere (kill switch
+//      for "Bankful pulled, button up the catalog"). Ignores cohort flag.
+//   2. NEXT_PUBLIC_RESTRICTED_FORCE_SHOW=true → show restricted to everyone
+//      (kill switch for "durable rails live, gate is redundant"). Ignores
+//      cohort flag.
+//   3. Default (neither env set) → cohort gate active. The caller
+//      (getServerSideProps) reads the cohort cookie via lib/cohort-session
+//      and passes `cohortAllowed` here. cohortAllowed=true → restricted
+//      visible, false → restricted hidden.
+//
+// `isRestrictedHidden()` preserved for legacy callers but now means
+// "hard-kill mode is on" specifically.
 export function isRestrictedHidden() {
   return process.env.NEXT_PUBLIC_HIDE_RESTRICTED === 'true';
 }
 
+export function isRestrictedForceShown() {
+  return process.env.NEXT_PUBLIC_RESTRICTED_FORCE_SHOW === 'true';
+}
+
+// True when restricted SKUs should appear for this request. Used by SSR pages
+// to decide what to render. cohortAllowed comes from the signed cookie /
+// query token check in lib/cohort-session.
+export function shouldShowRestricted(cohortAllowed) {
+  if (isRestrictedHidden()) return false;
+  if (isRestrictedForceShown()) return true;
+  return cohortAllowed === true;
+}
+
+// Cohort-aware. Pass cohortAllowed from getServerSideProps after calling
+// getCohortFromRequest(context, supabaseAdmin).
+export function getVisibleProductsForCohort(cohortAllowed) {
+  if (shouldShowRestricted(cohortAllowed)) return products;
+  return products.filter((p) => !p.restricted);
+}
+
+// Legacy: env-only filter. Kept for any non-SSR callers (none currently in
+// this repo, but exported in case external scripts import it).
 export function getVisibleProducts() {
   if (!isRestrictedHidden()) return products;
   return products.filter((p) => !p.restricted);

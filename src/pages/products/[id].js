@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import products, {
   getEffectiveStock,
-  isRestrictedHidden,
+  shouldShowRestricted,
   getPrivateInquiryUrl,
   isPreorderable,
   formatPreorderShipDate,
@@ -12,6 +12,7 @@ import { useCart } from '../../context/CartContext';
 import SEO from '../../components/SEO';
 import { Vial, Icon } from '../../components/Primitives';
 import { supabaseAdmin } from '../../lib/supabase';
+import { getCohortFromRequest } from '../../lib/cohort-session';
 
 const LOW_STOCK_THRESHOLD = 20;
 
@@ -47,9 +48,10 @@ export default function ProductDetail({
     return (
       <div className="max-w-container mx-auto px-8 pt-10 pb-20">
         <SEO
-          title={`${product.name} — Research Inquiry`}
+          title="Research Inquiry"
           description="Available for qualified researchers by direct inquiry."
           path={`/products/${product.id}`}
+          noindex
         />
 
         <nav className="flex items-center gap-2 text-[12px] opp-meta-mono mb-6">
@@ -64,10 +66,7 @@ export default function ProductDetail({
           <div className="card-premium p-10 md:p-14 text-center">
             <span className="opp-eyebrow">Private Research Inquiry</span>
             <h1 className="font-display font-semibold tracking-display text-[clamp(32px,4.5vw,56px)] leading-tight mt-3 mb-5 text-ink">
-              {product.name}
-              {product.dosage ? (
-                <span className="text-ink-soft font-normal"> · {product.dosage}</span>
-              ) : null}
+              Research Inquiry
             </h1>
             <p className="text-ink-soft leading-relaxed max-w-lg mx-auto mb-8">
               This compound is available to qualified researchers through direct inquiry only.
@@ -375,13 +374,21 @@ export async function getServerSideProps(context) {
     return { notFound: true };
   }
 
-  // If this SKU is flagged `restricted` and the hide-restricted flag is on,
-  // serve the Private Inquiry view instead of the normal storefront detail.
-  // Keeps direct URLs and bookmarks working without exposing a Buy button.
-  if (product.restricted && isRestrictedHidden()) {
+  // Cohort detection runs first so a ?ref= or ?cohort= deep-link to a
+  // restricted product page sets the cookie + unlocks the page in one hop.
+  const { cohortAllowed } = await getCohortFromRequest(context, supabaseAdmin);
+  const restrictedVisible = shouldShowRestricted(cohortAllowed);
+
+  // Restricted SKU + cohort not allowed → serve a generic Private Inquiry
+  // view instead of the normal storefront detail. Critically, we DO NOT pass
+  // the product name/description/dosage to the client — those values would
+  // serialize into the rendered HTML (Next.js __NEXT_DATA__ blob) and leak
+  // restricted SKU identifiers to AUP scanners. The URL itself still reveals
+  // the slug (/products/glp3-10mg) but the page body is generic + noindex.
+  if (product.restricted && !restrictedVisible) {
     return {
       props: {
-        product,
+        product: { id: product.id },
         stock: 0,
         relatedProducts: [],
         privateInquiry: true,
@@ -410,14 +417,13 @@ export async function getServerSideProps(context) {
     : inventory[product.id] ?? product.stock ?? 0;
 
   // Related products: up to 4 other products in same category, excluding
-  // any that are restricted while the hide-restricted flag is on.
-  const hideRestricted = isRestrictedHidden();
+  // any restricted SKUs the visitor isn't cleared to see.
   const relatedProducts = products
     .filter(
       (p) =>
         p.category === product.category &&
         p.id !== product.id &&
-        !(hideRestricted && p.restricted)
+        !(p.restricted && !restrictedVisible)
     )
     .slice(0, 4)
     .map((p) => ({

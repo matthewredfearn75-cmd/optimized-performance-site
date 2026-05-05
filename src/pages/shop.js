@@ -1,22 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import ProductCard from '../components/ProductCard';
-import { getEffectiveStock, getVisibleProducts } from '../data/products';
+import { getEffectiveStock, getVisibleProductsForCohort } from '../data/products';
 import { supabaseAdmin } from '../lib/supabase';
+import { getCohortFromRequest } from '../lib/cohort-session';
 import SEO from '../components/SEO';
 import { Icon } from '../components/Primitives';
 
 const ALL_CATEGORIES = ['All', 'GLPs', 'Peptides', 'GH Peptides', 'Combos', 'Supplements'];
 
-export default function Shop({ inventory }) {
+export default function Shop({ inventory, visibleProducts: visibleProductsProp }) {
   const router = useRouter();
   const initialCat = typeof router.query.cat === 'string' ? router.query.cat : 'All';
   const [cat, setCat] = useState(initialCat);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('default');
 
-  // Respect the restricted-SKU feature flag sitewide.
-  const visibleProducts = useMemo(() => getVisibleProducts(), []);
+  // Cohort-aware visible products are computed server-side and passed as a
+  // prop. The cookie / ?ref= / ?cohort= decision happens in getCohortFromRequest
+  // before this component renders, so the HTML never contains restricted SKU
+  // markup for unflagged visitors.
+  const visibleProducts = visibleProductsProp;
 
   // Hide any category that has zero visible SKUs so the filter row doesn't
   // show an empty tab (matters when restricted-hide is on and e.g. all GLPs
@@ -55,7 +59,7 @@ export default function Shop({ inventory }) {
     <div className="max-w-container mx-auto px-8 pt-14 pb-20">
       <SEO
         title="Shop Research Peptides"
-        description="Browse our full catalog of research-grade peptides. BPC-157, TB-500, GLP-3, Ipamorelin, HGH 191AA, MT-2, NAD+, and combo kits. 99% purity, fast shipping."
+        description="Browse our catalog of research-grade peptides. BPC-157, TB-500, Ipamorelin, MT-2, NAD+, and combo kits. 99% purity, fast shipping."
         path="/shop"
       />
 
@@ -142,7 +146,13 @@ export default function Shop({ inventory }) {
   );
 }
 
-export async function getServerSideProps() {
+export async function getServerSideProps(context) {
+  // Cohort detection runs first so a Set-Cookie can ride on this response if
+  // the visitor arrived via ?ref=CODE / ?cohort=TOKEN. Subsequent visits read
+  // the cookie; no DB roundtrip required.
+  const { cohortAllowed } = await getCohortFromRequest(context, supabaseAdmin);
+  const visibleProducts = getVisibleProductsForCohort(cohortAllowed);
+
   try {
     const { data, error } = await supabaseAdmin.from('inventory').select('product_id, stock');
     if (error) throw error;
@@ -150,13 +160,12 @@ export async function getServerSideProps() {
     data.forEach((item) => {
       inventory[item.product_id] = item.stock;
     });
-    return { props: { inventory } };
+    return { props: { inventory, visibleProducts } };
   } catch {
     const inventory = {};
-    const productsList = require('../data/products').default;
-    productsList.filter((p) => !p.isKit).forEach((p) => {
+    visibleProducts.filter((p) => !p.isKit).forEach((p) => {
       inventory[p.id] = p.stock;
     });
-    return { props: { inventory } };
+    return { props: { inventory, visibleProducts } };
   }
 }
