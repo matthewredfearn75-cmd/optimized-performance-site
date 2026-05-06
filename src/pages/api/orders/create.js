@@ -2,6 +2,7 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { validateOrigin, rateLimit, validateEmail, validateString, validateZip } from '../../../lib/security'
 import { createCheckoutSession } from '../../../lib/payments/cardProcessor'
 import { runVelocityChecks, extractClientIP } from '../../../lib/fraud-checks'
+import { calcShipping } from '../../../lib/shipping'
 
 function generateOrderNumber() {
   const date = new Date()
@@ -13,9 +14,6 @@ function generateOrderNumber() {
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://optimizedperformancepeptides.com'
-
-const SHIPPING_FLAT_RATE = 15
-const FREE_SHIPPING_THRESHOLD = 200
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -50,6 +48,9 @@ export default async function handler(req, res) {
     // SERVER-SIDE CALCULATION: recalculate totals from cart items to prevent tampering
     const products = require('../../../data/products').default
     let subtotal = 0
+    // Track isKit per line so the shipping calc can detect cold-pack carts
+    // server-side without trusting the client-supplied flag.
+    const validatedItems = []
     for (const item of items) {
       const product = products.find(p => p.sku === item.sku || p.id === item.id)
       if (!product) {
@@ -60,6 +61,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid item quantity' })
       }
       subtotal += product.price * qty
+      validatedItems.push({ isKit: product.isKit === true })
     }
 
     // Validate affiliate code server-side (cannot trust client-supplied discount/commission)
@@ -81,9 +83,10 @@ export default async function handler(req, res) {
     }
 
     const discountedTotal = subtotal - discount
-    // Free shipping threshold uses the post-discount subtotal — what the
-    // customer is actually paying for product, not the pre-discount sticker.
-    const shipping = discountedTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE
+    // Shipping math lives in lib/shipping.js — same helper drives the
+    // client-side checkout summary so the totals match exactly.
+    const shippingCalc = calcShipping({ items: validatedItems, discountedSubtotal: discountedTotal })
+    const shipping = shippingCalc.total
     const preFeeTotal = discountedTotal + shipping
     // Crypto path adds 4% to cover MoonPay processing; card path eats the
     // processor fee from margin.

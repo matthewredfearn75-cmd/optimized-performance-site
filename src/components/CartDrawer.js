@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useCart } from '../context/CartContext';
 import { Vial, Icon } from './Primitives';
+import { calcShipping } from '../lib/shipping';
 
 function formatShipDate(iso) {
   if (!iso) return null;
@@ -35,6 +36,11 @@ export default function CartDrawer() {
     close();
     router.push(p);
   };
+
+  // Drawer math is "best estimate before checkout" — affiliate discount isn't
+  // applied yet, so we pass cartTotal as discountedSubtotal. Final numbers
+  // are recomputed at checkout once the affiliate code is applied.
+  const shippingBreakdown = calcShipping({ items: cartItems, discountedSubtotal: cartTotal });
 
   return (
     <>
@@ -136,8 +142,19 @@ export default function CartDrawer() {
               </div>
               <div className="flex justify-between opp-meta-mono">
                 <span>Shipping</span>
-                <span>{cartTotal >= 200 ? 'FREE' : '$15 flat · free over $200'}</span>
+                <span>
+                  {shippingBreakdown.freeShipApplied
+                    ? 'FREE'
+                    : shippingBreakdown.hasColdPack
+                      ? `$${shippingBreakdown.total.toFixed(2)} · cold-pack`
+                      : '$16.95 flat · free over $250'}
+                </span>
               </div>
+              {shippingBreakdown.hasColdPack && (
+                <p className="opp-meta-mono text-ink-mute m-0 leading-snug">
+                  Kits ship USPS Priority in an insulated box with full-sheet phase-change gel — surcharge covers the cold-chain packaging and faster transit needed to keep vials at 2–8 °C.
+                </p>
+              )}
               <button className="btn-primary w-full mt-1" onClick={() => goto('/checkout')}>
                 Checkout <Icon name="arrow" size={16} />
               </button>

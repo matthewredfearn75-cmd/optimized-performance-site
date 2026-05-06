@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useCart } from '../context/CartContext';
 import SEO from '../components/SEO';
 import { Vial, Icon } from '../components/Primitives';
+import { calcShipping, FREE_SHIPPING_THRESHOLD } from '../lib/shipping';
 
 // Read the opp_ref cookie set by lib/cohort-session when a visitor arrives
 // via a valid ?ref=CODE link. Used to pre-fill + auto-apply the affiliate
@@ -92,11 +93,12 @@ export default function Checkout() {
   const discountPct = affiliateApplied ? affiliateApplied.discountPct : 0;
   const discountAmount = cartTotal * (discountPct / 100);
   const discountedSubtotal = cartTotal - discountAmount;
-  // Mirror of the server-side shipping calc in /api/orders/create. Server is
-  // source of truth; this is just for the displayed summary.
-  const SHIPPING_FLAT_RATE = 15;
-  const FREE_SHIPPING_THRESHOLD = 200;
-  const shippingCost = discountedSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE;
+  // Shipping math lives in lib/shipping.js — same helper runs server-side
+  // in /api/orders/create so the totals match exactly. cartItems carry isKit
+  // via spread in CartContext.addToCart, which the helper reads to detect
+  // cold-pack carts.
+  const shippingBreakdown = calcShipping({ items: cartItems, discountedSubtotal });
+  const shippingCost = shippingBreakdown.total;
   const discountedTotal = discountedSubtotal + shippingCost;
 
   // Preorder summary — derive from cart line metadata persisted by addToCart
@@ -386,15 +388,31 @@ export default function Checkout() {
             )}
             <div className="flex justify-between text-[13px]">
               <span className="text-ink-soft">Shipping</span>
-              {shippingCost === 0 ? (
+              {shippingBreakdown.freeShipApplied ? (
                 <span className="text-success font-semibold">FREE</span>
               ) : (
-                <span className="text-ink">${shippingCost.toFixed(2)}</span>
+                <span className="text-ink">${shippingBreakdown.base.toFixed(2)}</span>
               )}
             </div>
-            {shippingCost > 0 && (
+            {shippingBreakdown.hasColdPack && (
+              <>
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-ink-soft">Cold-pack handling</span>
+                  <span className="text-ink">${shippingBreakdown.coldPack.toFixed(2)}</span>
+                </div>
+                <p className="opp-meta-mono text-ink-mute m-0">
+                  Kits ship in an insulated box with phase-change gel to keep vials at 2–8 °C in transit. Surcharge covers packaging + cold-chain handling.
+                </p>
+              </>
+            )}
+            {!shippingBreakdown.hasColdPack && !shippingBreakdown.freeShipApplied && (
               <p className="opp-meta-mono text-ink-mute m-0">
-                Free shipping on orders ${FREE_SHIPPING_THRESHOLD}+ — add ${(FREE_SHIPPING_THRESHOLD - discountedSubtotal).toFixed(2)} to qualify.
+                Free standard shipping on vial-only orders ${FREE_SHIPPING_THRESHOLD}+ — add ${(FREE_SHIPPING_THRESHOLD - discountedSubtotal).toFixed(2)} to qualify.
+              </p>
+            )}
+            {shippingBreakdown.hasColdPack && (
+              <p className="opp-meta-mono text-ink-mute m-0">
+                Cold-pack shipping applies to all kit orders — free-shipping threshold does not apply.
               </p>
             )}
             <div className="flex justify-between pt-3 border-t border-line text-base font-bold text-ink">
