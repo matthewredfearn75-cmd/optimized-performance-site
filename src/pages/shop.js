@@ -153,12 +153,27 @@ export async function getServerSideProps(context) {
   const { cohortAllowed } = await getCohortFromRequest(context, supabaseAdmin);
   const visibleProducts = getVisibleProductsForCohort(cohortAllowed);
 
+  // Build the set of product_ids the inventory prop is allowed to expose.
+  // Visible products themselves PLUS the parent_ids of visible kits (kits
+  // resolve effective stock from the parent SKU's inventory row). Anything
+  // NOT in this set must be stripped before returning props — Next.js
+  // serializes the entire props object into __NEXT_DATA__ in the rendered
+  // HTML, so an unfiltered inventory map leaks restricted SKU IDs to AUP
+  // scanners parsing the HTML.
+  const allowedInventoryIds = new Set();
+  visibleProducts.forEach((p) => {
+    allowedInventoryIds.add(p.id);
+    if (p.isKit && p.parentId) allowedInventoryIds.add(p.parentId);
+  });
+
   try {
     const { data, error } = await supabaseAdmin.from('inventory').select('product_id, stock');
     if (error) throw error;
     const inventory = {};
     data.forEach((item) => {
-      inventory[item.product_id] = item.stock;
+      if (allowedInventoryIds.has(item.product_id)) {
+        inventory[item.product_id] = item.stock;
+      }
     });
     return { props: { inventory, visibleProducts } };
   } catch {

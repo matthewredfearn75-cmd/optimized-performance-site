@@ -320,11 +320,16 @@ const products = [
   },
 ];
 
-// Helper: get effective stock for a product (kits derive from parent)
+// Helper: get effective stock for a product (kits derive from parent).
+// Deliberately does NOT reference the global `products` array — that ensures
+// when this function is imported by client components (shop.js, [id].js),
+// Next.js does not pull the full product list (incl. restricted SKU data)
+// into the client JS bundle. The static product.stock fallback handles the
+// rare case where inventory is missing; for kits, missing parent inventory
+// = "out of stock" which is the safe default.
 export function getEffectiveStock(product, inventoryMap = {}) {
   if (product.isKit) {
-    const parent = products.find((p) => p.id === product.parentId);
-    const parentStock = inventoryMap[product.parentId] ?? parent?.stock ?? 0;
+    const parentStock = inventoryMap[product.parentId] ?? 0;
     return Math.floor(parentStock / product.vialCount);
   }
   return inventoryMap[product.id] ?? product.stock ?? 0;
