@@ -112,6 +112,23 @@ function buildSetCookieHeader(value, { secure = true } = {}) {
   return parts.join('; ')
 }
 
+// Companion cookie carrying the affiliate CODE for checkout attribution.
+// NOT HttpOnly — checkout.js reads it client-side to pre-fill the affiliate
+// code input. Tampering doesn't matter: the code is validated server-side at
+// order create against the affiliates table, so a forged opp_ref cookie just
+// fails validation and gets dropped. Same 90-day TTL as the cohort cookie.
+function buildRefCookieHeader(code, { secure = true } = {}) {
+  const maxAge = Math.floor(COOKIE_TTL_MS / 1000)
+  const parts = [
+    `opp_ref=${encodeURIComponent(code)}`,
+    'Path=/',
+    `Max-Age=${maxAge}`,
+    'SameSite=Lax',
+  ]
+  if (secure) parts.push('Secure')
+  return parts.join('; ')
+}
+
 // Append a Set-Cookie header without clobbering any other Set-Cookie the
 // caller (Next.js, downstream handlers) may already have written.
 function appendSetCookie(res, cookie) {
@@ -169,8 +186,14 @@ export async function getCohortFromRequest(context, supabaseAdmin) {
           .eq('active', true)
           .maybeSingle()
         if (data) {
+          // Two cookies: opp_cohort unlocks the catalog (HttpOnly, signed),
+          // opp_ref carries the affiliate code for checkout attribution
+          // (JS-readable, plain). Checkout.js reads opp_ref client-side to
+          // pre-fill the affiliate code input so the customer doesn't have
+          // to type it manually for the affiliate to get commission.
           appendSetCookie(res, buildSetCookieHeader(createCookieValue()))
-          return { cohortAllowed: true, source: 'ref_param' }
+          appendSetCookie(res, buildRefCookieHeader(data.code))
+          return { cohortAllowed: true, source: 'ref_param', refCode: data.code }
         }
       } catch (err) {
         // Don't fail the page render if the lookup blows up — fall through to

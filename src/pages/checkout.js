@@ -1,9 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useCart } from '../context/CartContext';
 import SEO from '../components/SEO';
 import { Vial, Icon } from '../components/Primitives';
+
+// Read the opp_ref cookie set by lib/cohort-session when a visitor arrives
+// via a valid ?ref=CODE link. Used to pre-fill + auto-apply the affiliate
+// code so customers from referral links get attribution without typing the
+// code manually. Falls back to empty string if cookie absent / disabled.
+function readRefCookie() {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:^|;\s*)opp_ref=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
 
 const MoonPayBuyWidget = dynamic(
   () => import('@moonpay/moonpay-react').then((mod) => mod.MoonPayBuyWidget),
@@ -30,15 +40,17 @@ export default function Checkout() {
   const [affiliateError, setAffiliateError] = useState('');
   const [serverTotal, setServerTotal] = useState(null);
   const [researchAck, setResearchAck] = useState(false);
+  const autoAppliedRef = useRef(false);
   const router = useRouter();
 
-  async function applyAffiliateCode() {
-    if (!affiliateCode.trim()) {
+  async function applyAffiliateCode(codeOverride) {
+    const raw = codeOverride ?? affiliateCode;
+    if (!raw || !raw.trim()) {
       setAffiliateApplied(null);
       setAffiliateError('');
       return;
     }
-    const code = affiliateCode.toUpperCase().trim();
+    const code = raw.toUpperCase().trim();
     try {
       const res = await fetch('/api/affiliates/validate', {
         method: 'POST',
@@ -60,6 +72,22 @@ export default function Checkout() {
       setAffiliateError('Unable to validate code.');
     }
   }
+
+  // On mount, read the opp_ref cookie (set by the cohort gate when the
+  // visitor arrived via ?ref=CODE) and auto-fill + auto-apply the code so
+  // referral attribution works without the customer typing the code. Guard
+  // against re-applying on re-renders with autoAppliedRef.
+  useEffect(() => {
+    if (autoAppliedRef.current) return;
+    const cookieCode = readRefCookie();
+    if (cookieCode && !affiliateCode) {
+      autoAppliedRef.current = true;
+      const upper = cookieCode.toUpperCase().trim();
+      setAffiliateCode(upper);
+      applyAffiliateCode(upper);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const discountPct = affiliateApplied ? affiliateApplied.discountPct : 0;
   const discountAmount = cartTotal * (discountPct / 100);
