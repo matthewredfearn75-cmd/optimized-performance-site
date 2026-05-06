@@ -150,23 +150,23 @@ function appendSetCookie(res, cookie) {
 // Usage:
 //   const { cohortAllowed } = await getCohortFromRequest(context)
 //
-// Behavior:
-//   1. If a valid cohort cookie is present → cohortAllowed=true. Done.
-//   2. Else, check ?cohort=TOKEN against the in-memory allowlist. If match →
-//      set cookie, return true.
-//   3. Else, check ?ref=CODE against the affiliates table (active codes only).
-//      If match → set cookie, return true.
-//   4. Else → return false. Public catalog rendered.
+// Behavior (in this order — query params win over existing cookie so a
+// returning visitor clicking a fresh affiliate link gets opp_ref refreshed
+// even when their opp_cohort cookie is already valid):
+//   1. ?cohort=TOKEN matches the in-memory allowlist → set/refresh
+//      opp_cohort, cohortAllowed=true.
+//   2. ?ref=CODE matches an active affiliate → set/refresh BOTH opp_cohort
+//      and opp_ref, cohortAllowed=true. opp_ref carries the code for
+//      checkout attribution.
+//   3. Existing valid opp_cohort cookie → cohortAllowed=true (no cookie
+//      writes needed).
+//   4. None of the above → cohortAllowed=false. Public catalog rendered.
 //
 // supabaseAdmin is passed in so this module stays import-cycle-free; callers
 // already have the admin client handy.
 export async function getCohortFromRequest(context, supabaseAdmin) {
   const { req, res, query } = context
   const cookies = parseCookies(req?.headers?.cookie)
-
-  if (cookies[COOKIE_NAME] && isCookieValueValid(cookies[COOKIE_NAME])) {
-    return { cohortAllowed: true, source: 'cookie' }
-  }
 
   const cohortParam = typeof query?.cohort === 'string' ? query.cohort : null
   if (cohortParam && isCohortAllowedToken(cohortParam)) {
@@ -201,6 +201,10 @@ export async function getCohortFromRequest(context, supabaseAdmin) {
         console.warn('[cohort-session] affiliate lookup failed:', err.message)
       }
     }
+  }
+
+  if (cookies[COOKIE_NAME] && isCookieValueValid(cookies[COOKIE_NAME])) {
+    return { cohortAllowed: true, source: 'cookie' }
   }
 
   return { cohortAllowed: false, source: 'none' }
